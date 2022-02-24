@@ -1,0 +1,70 @@
+{
+    "name": "@nodecfdi/xml-resource-retriever",
+    "version": "1.0.0",
+    "description": "XSD and XLST resource downloader for local storage",
+    "main": "dist/xml-resource-retriever.cjs.js",
+    "module": "dist/xml-resource-retriever.esm.js",
+    "types": "dist/xml-resource-retriever.d.ts",
+    "files": [
+        "dist"
+    ],
+    "homepage": "https://github.com/nodecfdi/xml-resource-retriever",
+    "repository": "https://github.com/nodecfdi/xml-resource-retriever",
+    "bugs": {
+        "url": "https://github.com/nodecfdi/xml-resource-retriever/issues"
+    },
+    "author": "OcelotlStudio <contacto@ocelotlstudio.com>",
+    "license": "MIT",
+    "keywords": [
+        "XSD",
+        "XLST",
+        "downloader",
+        "retriver",
+        "local",
+        "storage"
+    ],
+    "scripts": {
+        "dev": "rollup -c -w",
+        "build": "rollup -c",
+        "generate": "rimraf build && rimraf dist && yarn build && yarn build:types && yarn docs && rimraf build",
+        "build:types": "tsc -p ./tsconfig.json --outDir build --declaration true && api-extractor run",
+        "lint": "eslint --ext .js,.ts .",
+        "test": "jest",
+        "docs": "typedoc src --out docs",
+        "serve": "http-server ./tests/public --port 8999"
+    },
+    "devDependencies": {
+        "@microsoft/api-extractor": "^7.19.4",
+        "@rollup/plugin-commonjs": "^21.0.1",
+        "@rollup/plugin-node-resolve": "^13.1.3",
+        "@rollup/plugin-typescript": "^8.3.0",
+        "@types/jest": "^27.4.0",
+        "@types/mkdirp": "^1.0.2",
+        "@types/mmmagic": "^0.4.30",
+        "@types/node": "^17.0.18",
+        "@types/rimraf": "3.0.2",
+        "@typescript-eslint/eslint-plugin": "^5.12.0",
+        "@typescript-eslint/parser": "^5.12.0",
+        "eslint": "^8.9.0",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-prettier": "^4.0.0",
+        "glob": "^7.2.0",
+        "http-server": "^14.1.0",
+        "jest": "^27.5.1",
+        "jest-dev-server": "^6.0.3",
+        "jest-xml-matcher": "^1.2.0",
+        "prettier": "^2.5.1",
+        "rimraf": "^3.0.2",
+        "rollup": "^2.67.3",
+        "ts-jest": "^27.1.3",
+        "ts-node": "^10.5.0",
+        "tslib": "^2.3.1",
+        "typedoc": "^0.22.11",
+        "typescript": "^4.5.5"
+    },
+    "dependencies": {
+        "@xmldom/xmldom": "^0.8.1",
+        "mkdirp": "^1.0.4",
+        "mmmagic": "^0.5.3"
+    }
+}
