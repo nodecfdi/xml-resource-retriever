@@ -23,8 +23,55 @@
 
 > XSD and XLST resource downloader for local storage
 
-:us: The documentation of this project is in spanish as this is the natural language for intended audience.
+## About of @nodecfdi/xml-resource-retriever
 
-:mexico: La documentación del proyecto está en español porque ese es el lenguaje principal de los usuarios.
+The purpose of this library is to download recursively XML resources from the internet to a local storage for further
+usage. At this moment it only allows Schemas (XSL) and Transformations (XSLT) but is easily extensible implementing
+the `RetrieverInterface` interface or extending the `AbstractXmlRetriever` class.
 
-## Acerca de @nodecfdi/xml-resource-retriever
+For every downloaded file it will override its dependence's to a relative location, in this way, every dependence should
+be available to work offline.
+
+You can use the local object `NodeDownloader` that simply uses copy function to get and store a file from internet. You
+can also use your own implementation of the DownloaderInterface according to your needs. If you built a configurable and
+useful downloader class feel free to contribute it to this project.
+
+Based on php version repo: https://github.com/eclipxe13/XmlResourceRetriever
+
+## Installation
+
+```shell
+npm i @nodecfdi/xml-resource-retriever --save
+```
+
+or
+
+```shell
+yarn add @nodecfdi/xml-resource-retriever
+```
+
+## Basic usage
+
+```ts
+import {XsltRetriever} from "@nodecfdi/xml-resource-retriever";
+
+const xslt = new XsltRetriever('/project/cache');
+const local = await xslt.retrieve('http://www.sat.gob.mx/sitio_internet/cfd/3/cadenaoriginal_3_3/cadenaoriginal_3_3.xslt');
+
+console.log(local); /* /project/cache/www.sat.gob.mx/sitio_internet/cfd/3/cadenaoriginal_3_3/cadenaoriginal_3_3.xslt */
+```
+
+## Retriever more information
+
+These methods apply to `XslRetriever` and `XsltRetriever`
+
+- `retrieve(url)` Download recursively an url and store it into the retriever base path, it changes the child elements
+  that contains references to other files.
+- `download(url)`  Download an url and store it into the retriever base path. It does not validate the file for xml
+  errors. It does not download dependence's.
+- `buildPath(url)` Return the location of were a file should be stored according to the base path.
+- `setDownloader(downloader)` Change the default `NodeDownloader` to a custom implementation.
+
+`XsdRetriever` search for namespace `http://www.w3.org/2001/XMLSchema` elements `import` and `include`.
+
+`XsltRetriever` search for namespace `http://www.w3.org/1999/XSL/Transform` elements `import` and `include`.
