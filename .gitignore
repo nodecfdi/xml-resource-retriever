@@ -3,6 +3,8 @@ build
 dist
 coverage
 
+tests/public/www.sat.gob.mx
+
 .idea
 .vscode
 
