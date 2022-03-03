@@ -55,4 +55,4 @@ jobs:
                     find -type f -name "*.x*" -exec sed -i 's#http://www.sat.gob.mx/sitio_internet#http://localhost:8999/www.sat.gob.mx/sitio_internet#g' "{}" \;
 
             -   name: Test
-                run: yarn test --ci --coverage --maxWorkers=2
+                run: yarn test --ci --coverage --maxWorkers=1
