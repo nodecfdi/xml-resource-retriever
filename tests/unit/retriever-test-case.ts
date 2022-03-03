@@ -1,6 +1,6 @@
 import { join } from 'path';
 import { existsSync, statSync } from 'fs';
-import { sync } from 'rimraf';
+import rimraf from 'rimraf';
 
 const useRetrieverTestCase = (): {
     pathToClear(path: string): string;
@@ -10,9 +10,9 @@ const useRetrieverTestCase = (): {
 } => {
     let _pathToClear = '';
 
-    afterEach(() => {
+    afterEach(async () => {
         if ('' !== pathToClear()) {
-            deleteDir(pathToClear());
+            await deleteDir(pathToClear());
         }
     });
 
@@ -40,11 +40,19 @@ const useRetrieverTestCase = (): {
         return join(__dirname, '..', 'assets', path);
     }
 
-    function deleteDir(dirname: string): void {
-        if (!existsSync(dirname)) return;
-        const stat = statSync(dirname);
-        if (!stat.isDirectory()) return;
-        sync(dirname);
+    function deleteDir(dirname: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            if (!existsSync(dirname)) return resolve();
+            const stat = statSync(dirname);
+            if (!stat.isDirectory()) return resolve();
+            rimraf(dirname, function (e) {
+                if (e) {
+                    reject(e);
+                    return;
+                }
+                return resolve();
+            });
+        });
     }
 
     return {
