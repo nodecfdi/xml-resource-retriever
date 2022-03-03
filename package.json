@@ -51,6 +51,7 @@
         "express": "^4.17.3",
         "glob": "^7.2.0",
         "jest": "^27.5.1",
+        "jest-dev-server": "^6.0.3",
         "jest-xml-matcher": "^1.2.0",
         "prettier": "^2.5.1",
         "rimraf": "^3.0.2",

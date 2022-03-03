@@ -1,7 +1,9 @@
 // global-setup.js
-const server = require('./server-static');
+const { setup: setupDevServer } = require('jest-dev-server');
 
 module.exports = async function globalSetup() {
-    global.server = server.server;
-    // Your global setup
+    await setupDevServer({
+        command: `node tests/server-static.js`,
+        launchTimeout: 50000,
+    });
 };

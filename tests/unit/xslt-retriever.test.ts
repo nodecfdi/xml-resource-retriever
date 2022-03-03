@@ -33,7 +33,7 @@ describe('XsltRetriever', () => {
         const localXml = fileContents(local);
 
         expect(localXml).toEqualXML(assetXml);
-    });
+    }, 30000);
 
     testIf(existsSync(publicPath('www.sat.gob.mx')) && existsSync(publicPath('sat-urls.txt')))(
         'retrieve complex structure',
@@ -56,7 +56,6 @@ describe('XsltRetriever', () => {
 
             // verify file exists
             for (const expectedRemote of expectedRemotes) {
-                console.log(`${remotePrefix}${expectedRemote}`);
                 expect(existsSync(retriever.buildPath(`${remotePrefix}${expectedRemote}`))).toBeTruthy();
             }
         },

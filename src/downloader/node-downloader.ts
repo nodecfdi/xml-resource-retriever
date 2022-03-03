@@ -32,7 +32,11 @@ export class NodeDownloader implements DownloaderInterface {
             });
 
             writeStream.on('error', () => {
-                unlinkSync(destination);
+                try {
+                    unlinkSync(destination);
+                } catch (e) {
+                    //
+                }
                 return reject(new Error(`Unable to download ${source} to ${destination}`));
             });
         });

@@ -1,4 +1,7 @@
 // global-teardown.js
+const { teardown: teardownDevServer } = require('jest-dev-server');
+
 module.exports = async function globalTeardown() {
-    global.server.close();
+    await teardownDevServer();
+    // Your global teardown
 };

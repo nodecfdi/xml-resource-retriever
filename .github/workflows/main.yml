@@ -1,9 +1,11 @@
 name: CI
 on:
     push:
-        branches:
-            - main
+        branches: [ main ]
     pull_request:
+        branches: [ main ]
+    schedule:
+        -   cron: '0 16 * * 0' # sunday 16:00
 
 jobs:
     main:
@@ -35,7 +37,7 @@ jobs:
                     key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
             -   name: Install packages
-                run: yarn install --frozen-lockfile
+                run: yarn install --no-lockfile
 
             -   name: Lint
                 run: yarn lint
@@ -89,7 +91,7 @@ jobs:
                     key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
             -   name: Install packages
-                run: yarn install --frozen-lockfile
+                run: yarn install --no-lockfile
 
             -   name: Lint
                 run: yarn lint
