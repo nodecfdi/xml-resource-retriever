@@ -5,7 +5,7 @@ import { XsltRetriever } from '../../src';
 import { existsSync, readFileSync } from 'fs';
 import { EOL } from 'os';
 
-describe('XsltRetriever', () => {
+describe.skip('XsltRetriever', () => {
     const { fileContents, testIf } = useTestCase();
     const { buildPath, pathToClear, assetPath, publicPath } = useRetrieverTestCase();
 
