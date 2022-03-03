@@ -41,7 +41,7 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
         let fileContent = '';
         const existFile = existsSync(localFileName);
         if (existFile) {
-            fileContent = readFileSync(localFileName, 'binary');
+            fileContent = readFileSync(localFileName, 'utf-8');
         }
         const errors: Record<string, unknown> = {};
         const parser = new DOMParser({
@@ -71,7 +71,7 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
 
         if (changed) {
             const changedXml = new XMLSerializer().serializeToString(docParse);
-            writeFileSync(localFileName, changedXml);
+            writeFileSync(localFileName, changedXml, 'utf-8');
         }
         return Promise.resolve(localFileName);
     }

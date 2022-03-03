@@ -35,7 +35,7 @@ describe('XsltRetriever', () => {
         expect(localXml).toEqualXML(assetXml);
     }, 30000);
 
-    testIf(false /*  && existsSync(publicPath('www.sat.gob.mx')) && existsSync(publicPath('sat-urls.txt')) */)(
+    testIf(existsSync(publicPath('www.sat.gob.mx')) && existsSync(publicPath('sat-urls.txt')))(
         'retrieve complex structure',
         async () => {
             const pathSatUrls = publicPath('sat-urls.txt');
