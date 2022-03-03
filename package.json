@@ -1,6 +1,6 @@
 {
     "name": "@nodecfdi/xml-resource-retriever",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "XSD and XLST resource downloader for local storage",
     "main": "dist/xml-resource-retriever.cjs.js",
     "module": "dist/xml-resource-retriever.esm.js",
