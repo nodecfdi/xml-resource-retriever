@@ -51,6 +51,7 @@ jobs:
                 run: yarn lint
 
             -   name: Install tests/public/www.sat.gob.mx
+                if: matrix.os == 'ubuntu-latest'
                 run: |
                     if [ -z "$(which wget)" ]; then
                       apt-get -q update

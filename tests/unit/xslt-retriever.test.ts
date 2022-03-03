@@ -5,7 +5,7 @@ import { XsltRetriever } from '../../src';
 import { existsSync, readFileSync } from 'fs';
 import { EOL } from 'os';
 
-describe.skip('XsltRetriever', () => {
+describe('XsltRetriever', () => {
     const { fileContents, testIf } = useTestCase();
     const { buildPath, pathToClear, assetPath, publicPath } = useRetrieverTestCase();
 
@@ -35,7 +35,7 @@ describe.skip('XsltRetriever', () => {
         expect(localXml).toEqualXML(assetXml);
     }, 30000);
 
-    testIf(existsSync(publicPath('www.sat.gob.mx')) && existsSync(publicPath('sat-urls.txt')))(
+    testIf(false /*  && existsSync(publicPath('www.sat.gob.mx')) && existsSync(publicPath('sat-urls.txt')) */)(
         'retrieve complex structure',
         async () => {
             const pathSatUrls = publicPath('sat-urls.txt');
