@@ -1,10 +1,7 @@
 // global-setup.js
-const { setup: setupDevServer } = require('jest-dev-server');
+const server = require('./server-static');
 
 module.exports = async function globalSetup() {
-    await setupDevServer({
-        command: 'yarn serve --no-warnings',
-        launchTimeout: 50000,
-    });
+    global.server = server.server;
     // Your global setup
 };
