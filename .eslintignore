@@ -4,6 +4,7 @@ build
 docs
 coverage
 
+tests/server-static.js
 tests/global-setup.js
 tests/global-teardown.js
 jest.config.js

@@ -29,7 +29,7 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
      */
     protected constructor(basePath: string, downloader: DownloaderInterface | null = null) {
         this._basePath = basePath;
-        this.setDownloader(downloader ?? new NodeDownloader());
+        this.setDownloader(downloader || new NodeDownloader());
     }
 
     public getBasePath(): string {
@@ -76,7 +76,7 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
         // check content is valid
         await this.checkIsValidDownloadedFile(url, localPath);
 
-        return localPath;
+        return Promise.resolve(localPath);
     }
 
     public retrieveHistory(): Record<string, string> {

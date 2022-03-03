@@ -29,9 +29,9 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
      */
     protected abstract searchElements(): Record<string, string>[];
 
-    public async retrieve(url: string): Promise<string> {
+    public retrieve(url: string): Promise<string> {
         this.clearHistory();
-        return await this.doRetrieve(url);
+        return this.doRetrieve(url);
     }
 
     private async doRetrieve(resource: string): Promise<string> {
@@ -73,7 +73,7 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
             const changedXml = new XMLSerializer().serializeToString(docParse);
             writeFileSync(localFileName, changedXml);
         }
-        return localFileName;
+        return Promise.resolve(localFileName);
     }
 
     private async recursiveRetrieve(
@@ -102,7 +102,7 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
             elements[i].setAttribute(attributeName, relative);
             modified = true;
         }
-        return modified;
+        return Promise.resolve(modified);
     }
 
     /**
@@ -113,7 +113,7 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
      * @param localPath
      * @protected
      */
-    protected async checkIsValidDownloadedFile(source: string, localPath: string): Promise<void> {
+    protected checkIsValidDownloadedFile(source: string, localPath: string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             const statsFile = statSync(localPath);
             if (statsFile.size === 0) {

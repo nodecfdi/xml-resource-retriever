@@ -6,7 +6,7 @@ import http from 'http';
 import { unlinkSync } from 'fs';
 
 export class NodeDownloader implements DownloaderInterface {
-    public async downloadTo(source: string, destination: string): Promise<void> {
+    public downloadTo(source: string, destination: string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             const writeStream = createWriteStream(destination);
             const sendReq = this.adapterFor(source).get(source);
@@ -23,7 +23,7 @@ export class NodeDownloader implements DownloaderInterface {
 
             writeStream.on('finish', () => {
                 writeStream.close();
-                resolve();
+                return resolve();
             });
 
             sendReq.on('error', () => {
