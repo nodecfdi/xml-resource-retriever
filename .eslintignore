@@ -1,10 +1,7 @@
 node_modules
 dist
-build
 docs
+examples
 coverage
-
-tests/server-static.js
-tests/global-setup.js
-tests/global-teardown.js
-jest.config.js
+web_modules
+tsconfig.json
