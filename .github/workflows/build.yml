@@ -62,7 +62,7 @@ jobs:
           CI: true
 
       - name: 'Consume changesets'
-        if: github.event_name == 'push' && github.repository == 'nodecfdi/credentials' && matrix.node == 16 && github.ref == 'refs/heads/main'
+        if: github.event_name == 'push' && github.repository == 'nodecfdi/xml-resource-retriever' && matrix.node == 16 && github.ref == 'refs/heads/main'
         uses: changesets/action@v1
         id: 'changesets'
         with:
