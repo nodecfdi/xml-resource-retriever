@@ -3,6 +3,8 @@ module.exports = {
     testEnvironment: 'node',
     moduleDirectories: ['node_modules', 'src'],
     setupFilesAfterEnv: ['<rootDir>/jestSetup.ts'],
+    globalSetup: '<rootDir>/tests/jestGlobalSetup.cjs',
+    globalTeardown: '<rootDir>/tests/jestGlobalTeardown.cjs',
     moduleNameMapper: {
         '~/(.*)': '<rootDir>/src/$1'
     },

@@ -1,4 +1,4 @@
-import { AbstractXmlRetriever } from '../../src';
+import { AbstractXmlRetriever } from '~/abstract-xml-retriever';
 
 export class CommonXmlRetriever extends AbstractXmlRetriever {
     protected searchElements(): Record<string, string>[] {

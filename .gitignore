@@ -9,3 +9,5 @@ tests/public/www.sat.gob.mx
 scratch
 *.tsbuildinfo
 .pnpm-debug.log
+
+tests/_build

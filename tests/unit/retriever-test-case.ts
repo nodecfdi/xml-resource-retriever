@@ -25,11 +25,12 @@ const useRetrieverTestCase = (): {
         }
         const previousPath = _pathToClear;
         _pathToClear = path;
+
         return previousPath;
     }
 
     function buildPath(path: string): string {
-        return join(__dirname, '..', '..', 'build', 'tests', path);
+        return join(__dirname, '..', '..', 'tests', '_build', path);
     }
 
     function publicPath(path: string): string {
@@ -37,7 +38,7 @@ const useRetrieverTestCase = (): {
     }
 
     function assetPath(path: string): string {
-        return join(__dirname, '..', 'assets', path);
+        return join(__dirname, '..', '_files', path);
     }
 
     function deleteDir(dirname: string): Promise<void> {
@@ -48,8 +49,10 @@ const useRetrieverTestCase = (): {
             rimraf(dirname, function (e) {
                 if (e) {
                     reject(e);
+
                     return;
                 }
+
                 return resolve();
             });
         });
@@ -59,7 +62,7 @@ const useRetrieverTestCase = (): {
         buildPath,
         pathToClear,
         publicPath,
-        assetPath,
+        assetPath
     };
 };
 

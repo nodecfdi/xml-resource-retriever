@@ -1,21 +1,19 @@
 import { existsSync, readFileSync } from 'fs';
 
-const useTestCase = (): {
-    fileContents(filePath: string): string;
-    testIf(condition: boolean): jest.It;
-} => {
-    const fileContents = (filePath: string): string => {
-        if (!existsSync(filePath)) {
+export class TestCase {
+    public static filePath(filename: string): string {
+        return `${__dirname}/_files/${filename}`;
+    }
+
+    public static fileContents(filename: string): string {
+        if (!existsSync(filename)) {
             return '';
         }
-        return readFileSync(filePath, 'binary');
-    };
 
-    const testIf = (condition: boolean): jest.It => (condition ? test : test.skip);
+        return readFileSync(filename, 'binary');
+    }
 
-    return {
-        fileContents,
-        testIf,
-    };
-};
-export { useTestCase };
+    public static testIf(condition: boolean): jest.It {
+        return condition ? test : test.skip;
+    }
+}

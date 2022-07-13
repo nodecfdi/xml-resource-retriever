@@ -1,13 +1,18 @@
-import 'jest-xml-matcher';
-import { useRetrieverTestCase } from './retriever-test-case';
-import { XsdRetriever } from '../../src';
 import { existsSync, readFileSync } from 'fs';
-import { useTestCase } from '../test-case';
 import { EOL } from 'os';
+import { install } from '@nodecfdi/cfdiutils-common';
+import { XMLSerializer, DOMParser, DOMImplementation } from '@xmldom/xmldom';
+
+import { useRetrieverTestCase } from './retriever-test-case';
+import { XsdRetriever } from '~/xsd-retriever';
+import { TestCase } from '../test-case';
 
 describe('XsdRetriever', () => {
-    const { fileContents, testIf } = useTestCase();
     const { buildPath, pathToClear, assetPath, publicPath } = useRetrieverTestCase();
+
+    beforeAll(() => {
+        install(new DOMParser(), new XMLSerializer(), new DOMImplementation());
+    });
 
     test('retrieve recursive', async () => {
         const localPath = buildPath('recursive');
@@ -16,7 +21,7 @@ describe('XsdRetriever', () => {
         const remote = 'http://localhost:8999/xsd/entities/ticket.xsd';
         const expectedRemotes = [
             retriever.buildPath(remote),
-            retriever.buildPath('http://localhost:8999/xsd/articles/books.xsd'),
+            retriever.buildPath('http://localhost:8999/xsd/articles/books.xsd')
         ];
 
         // verify path of downloaded file
@@ -29,13 +34,13 @@ describe('XsdRetriever', () => {
         }
 
         // get string content xml for compare
-        const assetXml = fileContents(assetPath('expected-ticket.xsd'));
-        const localXml = fileContents(local);
+        const assetXml = TestCase.fileContents(assetPath('expected-ticket.xsd'));
+        const localXml = TestCase.fileContents(local);
 
         expect(localXml).toEqualXML(assetXml);
     });
 
-    testIf(existsSync(publicPath('www.sat.gob.mx')) && existsSync(publicPath('sat-urls.txt')))(
+    TestCase.testIf(existsSync(publicPath('www.sat.gob.mx')) && existsSync(publicPath('sat-urls.txt')))(
         'retrieve complex structure',
         async () => {
             const pathSatUrls = publicPath('sat-urls.txt');
@@ -56,6 +61,7 @@ describe('XsdRetriever', () => {
 
             // verify file exists
             for (const expectedRemote of expectedRemotes) {
+                // eslint-disable-next-line jest/no-standalone-expect
                 expect(existsSync(retriever.buildPath(`${remotePrefix}${expectedRemote}`))).toBeTruthy();
             }
         },
