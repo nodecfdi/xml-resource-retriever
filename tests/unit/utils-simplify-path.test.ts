@@ -1,4 +1,4 @@
-import { Utils } from '../../src';
+import { Utils } from '~/utils';
 
 describe('Utils.simplifyPath', () => {
     test.each([
@@ -17,7 +17,7 @@ describe('Utils.simplifyPath', () => {
         ['.', ['']],
         ['/', ['', '']],
         ['./', ['']],
-        ['./.', ['']],
+        ['./.', ['']]
     ])('expected behavior %s', (source: string, expected: string[]) => {
         expect(Utils.simplifyPath(source)).toStrictEqual(expected);
     });

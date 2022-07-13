@@ -1,15 +1,21 @@
-import 'jest-xml-matcher';
-import { CommonXmlRetriever } from './common-xml-retriever';
-import { AbstractBaseRetriever, NodeDownloader } from '../../src';
-import { useRetrieverTestCase } from './retriever-test-case';
-import { useTestCase } from '../test-case';
 import { existsSync } from 'fs';
 import { basename, dirname } from 'path';
 import { GlobSync } from 'glob';
+import { install } from '@nodecfdi/cfdiutils-common';
+import { XMLSerializer, DOMParser, DOMImplementation } from '@xmldom/xmldom';
+
+import { AbstractBaseRetriever } from '~/abstract-base-retriever';
+import { NodeDownloader } from '~/downloader/node-downloader';
+import { CommonXmlRetriever } from './common-xml-retriever';
+import { useRetrieverTestCase } from './retriever-test-case';
+import { TestCase } from '../test-case';
 
 describe('CommonXmlRetriever', () => {
-    const { fileContents } = useTestCase();
     const { buildPath, pathToClear, publicPath } = useRetrieverTestCase();
+
+    beforeAll(() => {
+        install(new DOMParser(), new XMLSerializer(), new DOMImplementation());
+    });
 
     test('construct minimal', () => {
         const retriever = new CommonXmlRetriever('foo');
@@ -35,13 +41,10 @@ describe('CommonXmlRetriever', () => {
     test('download throws exception on empty string', async () => {
         const retriever = new CommonXmlRetriever('foo');
 
-        expect.hasAssertions();
-        try {
-            await retriever.download('');
-        } catch (e) {
-            expect(e).toBeInstanceOf(SyntaxError);
-            expect(e).toHaveProperty('message', 'The argument to download is empty');
-        }
+        const t = async (): Promise<string> => retriever.download('');
+
+        await expect(t).rejects.toBeInstanceOf(Error);
+        await expect(t).rejects.toThrow('The argument to download is empty');
     });
 
     test('download simple case', async () => {
@@ -63,8 +66,8 @@ describe('CommonXmlRetriever', () => {
         expect(downloaded).toBe(destination);
 
         // get string content xml for compare
-        const publicXml = fileContents(publicFile);
-        const downloadedXml = fileContents(downloaded);
+        const publicXml = TestCase.fileContents(publicFile);
+        const downloadedXml = TestCase.fileContents(downloaded);
 
         expect(downloadedXml).toEqualXML(publicXml);
     });
@@ -75,13 +78,10 @@ describe('CommonXmlRetriever', () => {
         const remote = 'http://localhost:8999/other/empty.xml';
         const retriever = new CommonXmlRetriever(localPath);
 
-        expect.hasAssertions();
-        try {
-            await retriever.download(remote);
-        } catch (e) {
-            expect(e).toBeInstanceOf(Error);
-            expect(e).toHaveProperty('message', `The source ${remote} is not an xml file because it is empty`);
-        }
+        const t = async (): Promise<string> => retriever.download(remote);
+
+        await expect(t).rejects.toBeInstanceOf(Error);
+        await expect(t).rejects.toThrow(`The source ${remote} is not an xml file because it is empty`);
     });
 
     test('download not an xml file throws an exception and remove the file', async () => {
@@ -90,15 +90,10 @@ describe('CommonXmlRetriever', () => {
         const remote = 'http://localhost:8999/other/sample.gz';
         const retriever = new CommonXmlRetriever(localPath);
 
-        let raisedException = false;
-        try {
-            await retriever.download(remote);
-        } catch (e) {
-            expect(e).toBeInstanceOf(Error);
-            expect(e).toHaveProperty('message', `The source ${remote} (application/x-gzip) is not an xml file`);
-            raisedException = true;
-        }
-        expect(raisedException).toBeTruthy();
+        const t = async (): Promise<string> => retriever.download(remote);
+
+        await expect(t).rejects.toBeInstanceOf(Error);
+        await expect(t).rejects.toThrow(`The source ${remote} (application/x-gzip) is not an xml file`);
 
         // assert that the file does not exist (even if it was downloaded)
         const local = retriever.buildPath(remote);
@@ -113,13 +108,10 @@ describe('CommonXmlRetriever', () => {
 
         const destination = retriever.buildPath(remote);
 
-        expect.hasAssertions();
-        try {
-            await retriever.download(remote);
-        } catch (e) {
-            expect(e).toBeInstanceOf(Error);
-            expect(e).toHaveProperty('message', `Unable to download ${remote} to ${destination}`);
-        }
+        const t = async (): Promise<string> => retriever.download(remote);
+
+        await expect(t).rejects.toBeInstanceOf(Error);
+        await expect(t).rejects.toThrow(`Unable to download ${remote} to ${destination}`);
     });
 
     test('download to non writable', async () => {
@@ -127,19 +119,16 @@ describe('CommonXmlRetriever', () => {
         const remote = 'http://localhost:8999/other/sample.xml';
         const retriever = new CommonXmlRetriever(localPath);
 
-        expect.hasAssertions();
-        try {
-            await retriever.download(remote);
-        } catch (e) {
-            expect(e).toBeInstanceOf(Error);
-            expect(e).toHaveProperty('message', 'Unable to create directory /bin/bash/localhost:8999/other');
-        }
+        const t = async (): Promise<string> => retriever.download(remote);
+
+        await expect(t).rejects.toBeInstanceOf(Error);
+        await expect(t).rejects.toThrow('Unable to create directory /bin/bash/localhost:8999/other');
     });
 
     test.each([
         ['xml correct', 'http://localhost:8999/other/sample.xml'],
-        ['xml without header', 'http://localhost:8999/other/xml-without-header.xml'],
-    ])('retrieve xml valid cases %s', async (name: string, remote: string) => {
+        ['xml without header', 'http://localhost:8999/other/xml-without-header.xml']
+    ])('retrieve xml valid cases %s', async (_name: string, remote: string) => {
         const localPath = buildPath('sample');
         pathToClear(localPath);
         const retriever = new CommonXmlRetriever(localPath);
@@ -150,22 +139,17 @@ describe('CommonXmlRetriever', () => {
 
     test.each([
         ['xml with just header', 'http://localhost:8999/other/xml-just-header.xml'],
-        ['xml malformed', 'http://localhost:8999/other/malformed.xml'],
-    ])('retrieve xml with errors %s', async (name: string, remote: string) => {
+        ['xml malformed', 'http://localhost:8999/other/malformed.xml']
+    ])('retrieve xml with errors %s', async (_name: string, remote: string) => {
         const localPath = buildPath('malformed');
         pathToClear(localPath);
         const retriever = new CommonXmlRetriever(localPath);
 
-        let raisedException = false;
-        try {
-            await retriever.retrieve(remote);
-        } catch (e) {
-            expect(e).toBeInstanceOf(Error);
-            expect(e).toHaveProperty('message', `The source ${remote} contains errors`);
-            raisedException = true;
-        }
+        const t = async (): Promise<string> => retriever.retrieve(remote);
 
-        expect(raisedException).toBeTruthy();
+        await expect(t).rejects.toBeInstanceOf(Error);
+        await expect(t).rejects.toThrow(`The source ${remote} contains errors`);
+
         const local = retriever.buildPath(remote);
         expect(existsSync(local)).toBeFalsy();
     });
@@ -173,13 +157,10 @@ describe('CommonXmlRetriever', () => {
     test.each([['scheme://host'], ['host/path'], ['not-an-url']])('build path with invalid url %s', (url: string) => {
         const retriever = new CommonXmlRetriever('basepath');
 
-        expect.hasAssertions();
-        try {
-            retriever.buildPath(url);
-        } catch (e) {
-            expect(e).toBeInstanceOf(SyntaxError);
-            expect(e).toHaveProperty('message', `Invalid URL: ${url}`);
-        }
+        const t = (): string => retriever.buildPath(url);
+
+        expect(t).toThrow(Error);
+        expect(t).toThrow(`Invalid URL: ${url}`);
     });
 
     test('retrieve with history', async () => {

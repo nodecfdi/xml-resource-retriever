@@ -1,18 +1,19 @@
-import { RetrieverInterface } from './retriever-interface';
-import { DownloaderInterface } from './downloader/downloader-interface';
-import { NodeDownloader } from './downloader/node-downloader';
 import { dirname } from 'path';
 import { existsSync } from 'fs';
 import { URL } from 'url';
 import mkdirp from 'mkdirp';
 
+import { RetrieverInterface } from './retriever-interface';
+import { DownloaderInterface } from './downloader/downloader-interface';
+import { NodeDownloader } from './downloader/node-downloader';
+
 export abstract class AbstractBaseRetriever implements RetrieverInterface {
     private readonly _basePath: string;
+
     private _downloader!: DownloaderInterface;
 
     /**
      * This variable stores the list of retrieved resources to avoid infinite recursion
-     * @private
      */
     private _history: Record<string, string> = {};
 
@@ -23,11 +24,10 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
     /**
      * Retriever constructor
      *
-     * @param basePath
-     * @param downloader
-     * @protected
+     * @param basePath - path base
+     * @param downloader - implementation of downloader interface
      */
-    protected constructor(basePath: string, downloader: DownloaderInterface | null = null) {
+    protected constructor(basePath: string, downloader?: DownloaderInterface) {
         this._basePath = basePath;
         this.setDownloader(downloader || new NodeDownloader());
     }
@@ -47,14 +47,15 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
     public buildPath(url: string): string {
         const parts = this.urlParts(url);
         if (!parts) {
-            throw new SyntaxError(`Invalid URL: ${url}`);
+            throw new Error(`Invalid URL: ${url}`);
         }
+
         return `${this._basePath}/${parts.host}${parts.path}`;
     }
 
     public async download(url: string): Promise<string> {
         if ('' === url) {
-            return Promise.reject(new SyntaxError('The argument to download is empty'));
+            throw new Error('The argument to download is empty');
         }
 
         // set destination
@@ -66,7 +67,7 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
             try {
                 await mkdirp(dir);
             } catch (e) {
-                return Promise.reject(new SyntaxError(`Unable to create directory ${dir}`));
+                throw new Error(`Unable to create directory ${dir}`);
             }
         }
 
@@ -76,7 +77,7 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
         // check content is valid
         await this.checkIsValidDownloadedFile(url, localPath);
 
-        return Promise.resolve(localPath);
+        return localPath;
     }
 
     public retrieveHistory(): Record<string, string> {
@@ -95,8 +96,7 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
      * Retrieve url parts
      * If url is malformed return false
      *
-     * @param url
-     * @protected
+     * @param url - string url
      */
     protected urlParts(url: string): Record<string, string> | undefined {
         try {
@@ -104,14 +104,12 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
             if (!['https:', 'http:'].includes(parsed.protocol)) {
                 return undefined;
             }
-            if (parsed.pathname === '') {
-                return undefined;
-            }
+
             return {
                 scheme: parsed.protocol,
                 host: parsed.host,
                 port: parsed.port,
-                path: parsed.pathname,
+                path: parsed.pathname
             };
         } catch (e) {
             return undefined;

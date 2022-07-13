@@ -4,7 +4,7 @@ export class XsdRetriever extends AbstractXmlRetriever {
     protected searchElements(): Record<string, string>[] {
         return [
             { element: 'import', attribute: 'schemaLocation' },
-            { element: 'include', attribute: 'schemaLocation' },
+            { element: 'include', attribute: 'schemaLocation' }
         ];
     }
 

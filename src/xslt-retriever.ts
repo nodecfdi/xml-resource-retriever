@@ -4,7 +4,7 @@ export class XsltRetriever extends AbstractXmlRetriever {
     protected searchElements(): Record<string, string>[] {
         return [
             { element: 'import', attribute: 'href' },
-            { element: 'include', attribute: 'href' },
+            { element: 'include', attribute: 'href' }
         ];
     }
 

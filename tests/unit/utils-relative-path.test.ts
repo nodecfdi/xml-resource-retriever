@@ -1,4 +1,4 @@
-import { Utils } from '../../src';
+import { Utils } from '~/utils';
 
 describe('Utils.relativePath', () => {
     test.each([
@@ -9,8 +9,8 @@ describe('Utils.relativePath', () => {
         ['both absolute', '/foo/bar/baz', '/root', '../../root'],
         ['both relative', 'foo/bar/baz', 'root', '../../root'],
         ['absolute to relative', '/foo/bar/baz', 'root', '../../../root'],
-        ['relative to absolute', 'foo/bar/baz', '/root', '/root'],
-    ])('expected behaviour %s', (name: string, source: string, destination: string, expected: string) => {
+        ['relative to absolute', 'foo/bar/baz', '/root', '/root']
+    ])('expected behaviour %s', (_name: string, source: string, destination: string, expected: string) => {
         expect(Utils.relativePath(source, destination)).toBe(expected);
     });
 });

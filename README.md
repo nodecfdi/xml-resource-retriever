@@ -1,29 +1,20 @@
-# @nodecfdi/xml-resource-retriever
+# `@nodecfdi/xml-resource-retriever`
 
 [![Source Code][badge-source]][source]
-[![Software License][badge-license]][license]
-[![Latest Version][badge-release]][release]
+[![Npm Node Version Support][badge-node-version]][node-version]
 [![Discord][badge-discord]][discord]
-
-[source]: https://github.com/nodecfdi/xml-resource-retriever
-
-[badge-source]: https://img.shields.io/badge/source-nodecfdi%2Fxml--resource--retriever-blue?logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMTIgMTIgNDAgNDAiPjxwYXRoIGZpbGw9IiMzMzMzMzMiIGQ9Ik0zMiwxMy40Yy0xMC41LDAtMTksOC41LTE5LDE5YzAsOC40LDUuNSwxNS41LDEzLDE4YzEsMC4yLDEuMy0wLjQsMS4zLTAuOWMwLTAuNSwwLTEuNywwLTMuMiBjLTUuMywxLjEtNi40LTIuNi02LjQtMi42QzIwLDQxLjYsMTguOCw0MSwxOC44LDQxYy0xLjctMS4yLDAuMS0xLjEsMC4xLTEuMWMxLjksMC4xLDIuOSwyLDIuOSwyYzEuNywyLjksNC41LDIuMSw1LjUsMS42IGMwLjItMS4yLDAuNy0yLjEsMS4yLTIuNmMtNC4yLTAuNS04LjctMi4xLTguNy05LjRjMC0yLjEsMC43LTMuNywyLTUuMWMtMC4yLTAuNS0wLjgtMi40LDAuMi01YzAsMCwxLjYtMC41LDUuMiwyIGMxLjUtMC40LDMuMS0wLjcsNC44LTAuN2MxLjYsMCwzLjMsMC4yLDQuNywwLjdjMy42LTIuNCw1LjItMiw1LjItMmMxLDIuNiwwLjQsNC42LDAuMiw1YzEuMiwxLjMsMiwzLDIsNS4xYzAsNy4zLTQuNSw4LjktOC43LDkuNCBjMC43LDAuNiwxLjMsMS43LDEuMywzLjVjMCwyLjYsMCw0LjYsMCw1LjJjMCwwLjUsMC40LDEuMSwxLjMsMC45YzcuNS0yLjYsMTMtOS43LDEzLTE4LjFDNTEsMjEuOSw0Mi41LDEzLjQsMzIsMTMuNHoiLz48L3N2Zz4%3D
-
-[license]: https://github.com/nodecfdi/xml-resource-retriever/blob/main/LICENSE
-
-[badge-license]: https://img.shields.io/github/license/nodecfdi/xml-resource-retriever?logo=open-source-initiative&style=flat-square
-
-[badge-release]: https://img.shields.io/npm/v/@nodecfdi/xml-resource-retriever
-
-[release]: https://www.npmjs.com/package/@nodecfdi/xml-resource-retriever
-
-[badge-discord]: https://img.shields.io/discord/459860554090283019?logo=discord&style=flat-square
-
-[discord]: https://discord.gg/aFGYXvX
+[![Latest Version][badge-release]][release]
+[![Software License][badge-license]][license]
+[![Build Status][badge-build]][build]
+[![Reliability][badge-reliability]][reliability]
+[![Maintainability][badge-maintainability]][maintainability]
+[![Code Coverage][badge-coverage]][coverage]
+[![Violations][badge-violations]][violations]
+[![Total Downloads][badge-downloads]][downloads]
 
 > XSD and XLST resource downloader for local storage
 
-## About of @nodecfdi/xml-resource-retriever
+## About of `@nodecfdi/xml-resource-retriever`
 
 The purpose of this library is to download recursively XML resources from the internet to a local storage for further
 usage. At this moment it only allows Schemas (XSL) and Transformations (XSLT) but is easily extensible implementing
@@ -36,7 +27,7 @@ You can use the local object `NodeDownloader` that simply uses copy function to 
 can also use your own implementation of the DownloaderInterface according to your needs. If you built a configurable and
 useful downloader class feel free to contribute it to this project.
 
-Based on php version repo: https://github.com/eclipxe13/XmlResourceRetriever
+Based on php version repo: <https://github.com/eclipxe13/XmlResourceRetriever>
 
 ## Installation
 
@@ -52,8 +43,33 @@ yarn add @nodecfdi/xml-resource-retriever
 
 ## Basic usage
 
+Example with [xmldom](https://www.npmjs.com/package/@xmldom/xmldom)
+
 ```ts
-import {XsltRetriever} from "@nodecfdi/xml-resource-retriever";
+import { install } from '@nodecfdi/cfdiutils-common';
+import { XMLSerializer, DOMParser, DOMImplementation } from '@xmldom/xmldom';
+import { XsltRetriever } from '@nodecfdi/xml-resource-retriever';
+
+install(new DOMParser(), new XMLSerializer(), new DOMImplementation());
+
+const xslt = new XsltRetriever('/project/cache');
+const local = await xslt.retrieve('http://www.sat.gob.mx/sitio_internet/cfd/3/cadenaoriginal_3_3/cadenaoriginal_3_3.xslt');
+
+console.log(local); /* /project/cache/www.sat.gob.mx/sitio_internet/cfd/3/cadenaoriginal_3_3/cadenaoriginal_3_3.xslt */
+```
+
+Example with [jsdom](https://www.npmjs.com/package/jsdom)
+
+```ts
+import { install } from '@nodecfdi/cfdiutils-common';
+import { JSDOM } from 'jsdom';
+import { XsltRetriever } from 'nodecfdi/xml-resource-retriever';
+
+const dom = new JSDOM();
+const jsDOMParser = new dom.window.DOMParser();
+const jsXMLSerializer = new dom.window.XMLSerializer();
+const jsDOMImplementation = dom.window.document.implementation;
+install(jsDOMParser, jsXMLSerializer, jsDOMImplementation);
 
 const xslt = new XsltRetriever('/project/cache');
 const local = await xslt.retrieve('http://www.sat.gob.mx/sitio_internet/cfd/3/cadenaoriginal_3_3/cadenaoriginal_3_3.xslt');
@@ -75,3 +91,51 @@ These methods apply to `XslRetriever` and `XsltRetriever`
 `XsdRetriever` search for namespace `http://www.w3.org/2001/XMLSchema` elements `import` and `include`.
 
 `XsltRetriever` search for namespace `http://www.w3.org/1999/XSL/Transform` elements `import` and `include`.
+
+## Soporte
+
+Puedes obtener soporte abriendo un ticket en Github.
+
+Adicionalmente, esta librería pertenece a la comunidad [OcelotlStudio](https://ocelotlstudio.com), así que puedes usar los mismos canales de comunicación para obtener ayuda de algún miembro de la comunidad.
+
+## Compatibilidad
+
+Esta librería se mantendrá compatible con al menos la versión con
+[soporte activo de Node](https://nodejs.org/es/about/releases/) más reciente.
+
+También utilizamos [Versionado Semántico 2.0.0](https://semver.org/lang/es/) por lo que puedes usar esta librería sin temor a romper tu aplicación.
+
+## Contribuciones
+
+Las contribuciones con bienvenidas. Por favor lee [CONTRIBUTING][] para más detalles y recuerda revisar el archivo [CHANGELOG][].
+
+## Copyright and License
+
+The `@nodecfdi/xml-resource-retriever` library is copyright © [NodeCfdi](https://github.com/nodecfdi) - [OcelotlStudio](https://ocelotlstudio.com) and licensed for use under the MIT License (MIT). Please see [LICENSE][] for more information.
+
+[contributing]: https://github.com/nodecfdi/xml-resource-retriever/blob/main/CONTRIBUTING.md
+[changelog]: https://github.com/nodecfdi/xml-resource-retriever/blob/main/CHANGELOG.md
+
+[source]: https://github.com/nodecfdi/xml-resource-retriever
+[node-version]: https://www.npmjs.com/package/@nodecfdi/xml-resource-retriever
+[discord]: https://discord.gg/AsqX8fkW2k
+[release]: https://www.npmjs.com/package/@nodecfdi/xml-resource-retriever
+[license]: https://github.com/nodecfdi/xml-resource-retriever/blob/main/LICENSE
+[build]: https://github.com/nodecfdi/xml-resource-retriever/actions/workflows/build.yml?query=branch:main
+[reliability]:https://sonarcloud.io/component_measures?id=nodecfdi_xml-resource-retriever&metric=Reliability
+[maintainability]: https://sonarcloud.io/component_measures?id=nodecfdi_xml-resource-retriever&metric=Maintainability
+[coverage]: https://sonarcloud.io/component_measures?id=nodecfdi_xml-resource-retriever&metric=Coverage
+[violations]: https://sonarcloud.io/project/issues?id=nodecfdi_xml-resource-retriever&resolved=false
+[downloads]: https://www.npmjs.com/package/@nodecfdi/xml-resource-retriever
+
+[badge-source]: https://img.shields.io/badge/source-nodecfdi/xml--resource--retriever-blue.svg?logo=github
+[badge-node-version]: https://img.shields.io/node/v/@nodecfdi/xml-resource-retriever.svg?logo=nodedotjs
+[badge-discord]: https://img.shields.io/discord/459860554090283019?logo=discord
+[badge-release]: https://img.shields.io/npm/v/@nodecfdi/xml-resource-retriever.svg?logo=npm
+[badge-license]: https://img.shields.io/github/license/nodecfdi/xml-resource-retriever.svg?logo=open-source-initiative
+[badge-build]: https://img.shields.io/github/workflow/status/nodecfdi/xml-resource-retriever/build/main?logo=github-actions
+[badge-reliability]: https://sonarcloud.io/api/project_badges/measure?project=nodecfdi_xml-resource-retriever&metric=reliability_rating
+[badge-maintainability]: https://sonarcloud.io/api/project_badges/measure?project=nodecfdi_xml-resource-retriever&metric=sqale_rating
+[badge-coverage]: https://img.shields.io/sonar/coverage/nodecfdi_xml-resource-retriever/main?logo=sonarcloud&server=https%3A%2F%2Fsonarcloud.io
+[badge-violations]: https://img.shields.io/sonar/violations/nodecfdi_xml-resource-retriever/main?format=long&logo=sonarcloud&server=https%3A%2F%2Fsonarcloud.io
+[badge-downloads]: https://img.shields.io/npm/dm/@nodecfdi/xml-resource-retriever.svg?logo=npm
