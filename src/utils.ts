@@ -7,7 +7,7 @@ export class Utils {
         }
         // remove the common path
         for (const [depth, dir] of source.entries()) {
-            if (destination[depth] != undefined) {
+            if (destination[depth] !== undefined) {
                 if (dir === destination[depth]) {
                     delete destination[depth];
                     delete source[depth];
@@ -26,13 +26,14 @@ export class Utils {
         for (let i = 0; i < fromLength - 1; i++) {
             destination.unshift('..');
         }
+
         return destination.join('/');
     }
 
     /**
      * Simplify a path and return it parts is an array
      *
-     * @param path
+     * @param path -
      */
     public static simplifyPath(path: string): string[] {
         const parts = path.replace(/\/\//g, '/./').split('/');
@@ -42,14 +43,17 @@ export class Utils {
             if (i > 0 && '..' === parts[i] && '..' !== parts[i - 1]) {
                 parts.splice(i - 1, 1);
                 parts.splice(i - 1, 1);
+
                 return Utils.simplifyPath(parts.join('/'));
             }
             // is inner '.'
             if ('.' === parts[i]) {
                 parts.splice(i, 1);
+
                 return Utils.simplifyPath(parts.join('/'));
             }
         }
+
         return parts;
     }
 }

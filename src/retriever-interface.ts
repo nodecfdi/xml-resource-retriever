@@ -7,7 +7,7 @@ export interface RetrieverInterface {
     /**
      * Return the path where an url would be located
      *
-     * @param url
+     * @param url -
      */
     buildPath(url: string): string;
 
@@ -15,7 +15,7 @@ export interface RetrieverInterface {
      * Retrieve an url and all its related resources
      * Return the path where the resource is located (as in buildPath)
      *
-     * @param url
+     * @param url -
      */
     retrieve(url: string): Promise<string>;
 
@@ -29,7 +29,7 @@ export interface RetrieverInterface {
      * Download an url without its related resources
      * Return the path where the resource is located (as in buildPath)
      *
-     * @param url
+     * @param url -
      */
     download(url: string): Promise<string>;
 }

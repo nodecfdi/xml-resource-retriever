@@ -1,9 +1,9 @@
-import { DownloaderInterface } from './downloader-interface';
-import { createWriteStream } from 'fs';
+import { createWriteStream, unlinkSync } from 'fs';
 import { URL } from 'url';
 import https from 'https';
 import http from 'http';
-import { unlinkSync } from 'fs';
+
+import { DownloaderInterface } from './downloader-interface';
 
 export class NodeDownloader implements DownloaderInterface {
     public downloadTo(source: string, destination: string): Promise<void> {
@@ -17,17 +17,20 @@ export class NodeDownloader implements DownloaderInterface {
                 } else {
                     writeStream.close();
                     unlinkSync(destination);
+
                     return reject(new Error(`Unable to download ${source} to ${destination}`));
                 }
             });
 
             writeStream.on('finish', () => {
                 writeStream.close();
+
                 return resolve();
             });
 
             sendReq.on('error', () => {
                 unlinkSync(destination);
+
                 return reject(new Error(`Unable to download ${source} to ${destination}`));
             });
 
@@ -37,6 +40,7 @@ export class NodeDownloader implements DownloaderInterface {
                 } catch (e) {
                     //
                 }
+
                 return reject(new Error(`Unable to download ${source} to ${destination}`));
             });
         });
@@ -45,9 +49,10 @@ export class NodeDownloader implements DownloaderInterface {
     protected adapterFor(inputUrl: string): typeof http | typeof https {
         const adapter: Record<string, typeof http | typeof https> = {
             'http:': http,
-            'https:': https,
+            'https:': https
         };
         const targetUrl = new URL(inputUrl);
+
         return adapter[targetUrl.protocol];
     }
 }
