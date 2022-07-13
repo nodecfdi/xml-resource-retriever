@@ -1,5 +1,21 @@
 # @nodecfdi/xml-resource-retriever ChangeLog
 
+## 1.1.0
+
+### DOM agnostic
+
+- Added support to DOM agnostic
+- Added dependency to use @nodecfdi/cfdiutils-common
+
+### CI
+
+- Update workflow for use pnpm and better test coverage
+- Added Sonarcloud for better continuos code quality
+
+### Build
+
+- Replace rollup bundle to microbundle for generation of library.
+
 ## 1.0.2
 
 - Resolve bad encoded for files xml (need utf-8)
