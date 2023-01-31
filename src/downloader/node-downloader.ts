@@ -1,47 +1,47 @@
-import { createWriteStream, unlinkSync } from 'fs';
-import { URL } from 'url';
-import https from 'https';
-import http from 'http';
+import { createWriteStream, unlinkSync } from 'node:fs';
+import { URL } from 'node:url';
+import https from 'node:https';
+import http from 'node:http';
 
-import { DownloaderInterface } from './downloader-interface';
+import { type DownloaderInterface } from './downloader-interface';
 
 export class NodeDownloader implements DownloaderInterface {
-    public downloadTo(source: string, destination: string): Promise<void> {
+    public async downloadTo(source: string, destination: string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
             const writeStream = createWriteStream(destination);
-            const sendReq = this.adapterFor(source).get(source);
+            const sendRequest = this.adapterFor(source).get(source);
 
-            sendReq.on('response', (response) => {
+            sendRequest.on('response', (response) => {
                 if (response.statusCode === 200) {
                     response.pipe(writeStream);
                 } else {
                     writeStream.close();
                     unlinkSync(destination);
 
-                    return reject(new Error(`Unable to download ${source} to ${destination}`));
+                    reject(new Error(`Unable to download ${source} to ${destination}`));
                 }
             });
 
             writeStream.on('finish', () => {
                 writeStream.close();
 
-                return resolve();
+                resolve();
             });
 
-            sendReq.on('error', () => {
+            sendRequest.on('error', () => {
                 unlinkSync(destination);
 
-                return reject(new Error(`Unable to download ${source} to ${destination}`));
+                reject(new Error(`Unable to download ${source} to ${destination}`));
             });
 
             writeStream.on('error', () => {
                 try {
                     unlinkSync(destination);
-                } catch (e) {
+                } catch {
                     //
                 }
 
-                return reject(new Error(`Unable to download ${source} to ${destination}`));
+                reject(new Error(`Unable to download ${source} to ${destination}`));
             });
         });
     }

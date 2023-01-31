@@ -1,25 +1,20 @@
-import { dirname } from 'path';
-import { existsSync } from 'fs';
-import { URL } from 'url';
+import { dirname } from 'node:path';
+import { existsSync } from 'node:fs';
+import { URL } from 'node:url';
 import mkdirp from 'mkdirp';
 
-import { RetrieverInterface } from './retriever-interface';
-import { DownloaderInterface } from './downloader/downloader-interface';
+import { type RetrieverInterface } from './retriever-interface';
+import { type DownloaderInterface } from './downloader/downloader-interface';
 import { NodeDownloader } from './downloader/node-downloader';
 
 export abstract class AbstractBaseRetriever implements RetrieverInterface {
     private readonly _basePath: string;
-
     private _downloader!: DownloaderInterface;
 
     /**
      * This variable stores the list of retrieved resources to avoid infinite recursion
      */
     private _history: Record<string, string> = {};
-
-    protected abstract checkIsValidDownloadedFile(source: string, localPath: string): Promise<void>;
-
-    public abstract retrieve(url: string): Promise<string>;
 
     /**
      * Retriever constructor
@@ -29,7 +24,7 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
      */
     protected constructor(basePath: string, downloader?: DownloaderInterface) {
         this._basePath = basePath;
-        this.setDownloader(downloader || new NodeDownloader());
+        this.setDownloader(downloader ?? new NodeDownloader());
     }
 
     public getBasePath(): string {
@@ -54,27 +49,27 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
     }
 
     public async download(url: string): Promise<string> {
-        if ('' === url) {
+        if (url === '') {
             throw new Error('The argument to download is empty');
         }
 
-        // set destination
+        // Set destination
         const localPath = this.buildPath(url);
 
-        // create local path
-        const dir = dirname(localPath);
-        if (!existsSync(dir)) {
+        // Create local path
+        const directory = dirname(localPath);
+        if (!existsSync(directory)) {
             try {
-                await mkdirp(dir);
-            } catch (e) {
-                throw new Error(`Unable to create directory ${dir}`);
+                await mkdirp(directory);
+            } catch {
+                throw new Error(`Unable to create directory ${directory}`);
             }
         }
 
-        // download the file into its final destination
+        // Download the file into its final destination
         await this._downloader.downloadTo(url, localPath);
 
-        // check content is valid
+        // Check content is valid
         await this.checkIsValidDownloadedFile(url, localPath);
 
         return localPath;
@@ -83,6 +78,8 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
     public retrieveHistory(): Record<string, string> {
         return this._history;
     }
+
+    public abstract retrieve(url: string): Promise<string>;
 
     protected clearHistory(): void {
         this._history = {};
@@ -111,8 +108,10 @@ export abstract class AbstractBaseRetriever implements RetrieverInterface {
                 port: parsed.port,
                 path: parsed.pathname
             };
-        } catch (e) {
+        } catch {
             return undefined;
         }
     }
+
+    protected abstract checkIsValidDownloadedFile(source: string, localPath: string): Promise<void>;
 }
