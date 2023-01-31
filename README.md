@@ -31,14 +31,22 @@ Based on php version repo: <https://github.com/eclipxe13/XmlResourceRetriever>
 
 ## Installation
 
-```shell
+NPM
+
+```bash
 npm i @nodecfdi/xml-resource-retriever --save
 ```
 
-or
+YARN
 
-```shell
+```bash
 yarn add @nodecfdi/xml-resource-retriever
+```
+
+PNPM
+
+```bash
+pnpm add @nodecfdi/xml-resource-retriever
 ```
 
 ## Basic usage
@@ -133,7 +141,7 @@ The `@nodecfdi/xml-resource-retriever` library is copyright © [NodeCfdi](https:
 [badge-discord]: https://img.shields.io/discord/459860554090283019?logo=discord
 [badge-release]: https://img.shields.io/npm/v/@nodecfdi/xml-resource-retriever.svg?logo=npm
 [badge-license]: https://img.shields.io/github/license/nodecfdi/xml-resource-retriever.svg?logo=open-source-initiative
-[badge-build]: https://img.shields.io/github/workflow/status/nodecfdi/xml-resource-retriever/build/main?logo=github-actions
+[badge-build]: https://img.shields.io/github/actions/workflow/status/nodecfdi/xml-resource-retriever/build.yml?branch=main&logo=github-actions
 [badge-reliability]: https://sonarcloud.io/api/project_badges/measure?project=nodecfdi_xml-resource-retriever&metric=reliability_rating
 [badge-maintainability]: https://sonarcloud.io/api/project_badges/measure?project=nodecfdi_xml-resource-retriever&metric=sqale_rating
 [badge-coverage]: https://img.shields.io/sonar/coverage/nodecfdi_xml-resource-retriever/main?logo=sonarcloud&server=https%3A%2F%2Fsonarcloud.io
