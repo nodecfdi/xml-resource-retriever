@@ -1,4 +1,4 @@
-export interface RetrieverInterface {
+export type RetrieverInterface = {
     /**
      * Must return the base path where the elements will be downloaded
      */
@@ -32,4 +32,4 @@ export interface RetrieverInterface {
      * @param url -
      */
     download(url: string): Promise<string>;
-}
+};

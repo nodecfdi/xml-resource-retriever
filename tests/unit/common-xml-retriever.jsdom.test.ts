@@ -1,10 +1,13 @@
+/**
+ * \@vitest-environment jsdom
+ */
+
 import 'jest-xml-matcher';
 import { existsSync } from 'node:fs';
 import { basename, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GlobSync } from 'glob';
 import { install } from '@nodecfdi/cfdiutils-common';
-import { XMLSerializer, DOMParser, DOMImplementation } from '@xmldom/xmldom';
 
 import { AbstractBaseRetriever } from '~/abstract-base-retriever';
 import { NodeDownloader } from '~/downloader/node-downloader';
@@ -12,12 +15,12 @@ import { CommonXmlRetriever } from './common-xml-retriever';
 import { useRetrieverTestCase } from './retriever-test-case';
 import { useTestCase } from '../test-case';
 
-describe('CommonXmlRetriever', () => {
+describe('CommonXmlRetriever_jsdom', () => {
     const { buildPath, pathToClear, publicPath } = useRetrieverTestCase();
     const { fileContents } = useTestCase();
 
     beforeAll(() => {
-        install(new DOMParser(), new XMLSerializer(), new DOMImplementation());
+        install(new DOMParser(), new XMLSerializer(), document.implementation);
     });
 
     test('construct_minimal', () => {

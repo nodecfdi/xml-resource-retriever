@@ -1,19 +1,22 @@
+/**
+ * \@vitest-environment jsdom
+ */
+
 import 'jest-xml-matcher';
 import { existsSync, readFileSync } from 'node:fs';
 import { EOL } from 'node:os';
 import { install } from '@nodecfdi/cfdiutils-common';
-import { XMLSerializer, DOMParser, DOMImplementation } from '@xmldom/xmldom';
 
 import { useRetrieverTestCase } from './retriever-test-case';
 import { XsdRetriever } from '~/xsd-retriever';
 import { useTestCase } from '../test-case';
 
-describe('XsdRetriever', () => {
+describe('XsdRetriever_jsdom', () => {
     const { buildPath, pathToClear, assetPath, publicPath } = useRetrieverTestCase();
     const { fileContents } = useTestCase();
 
     beforeAll(() => {
-        install(new DOMParser(), new XMLSerializer(), new DOMImplementation());
+        install(new DOMParser(), new XMLSerializer(), document.implementation);
     });
 
     test('retrieve recursive', async () => {
@@ -35,8 +38,11 @@ describe('XsdRetriever', () => {
             expect(existsSync(expectedRemote)).toBeTruthy();
         }
 
-        // Get string content xml for compare
-        const assetXml = fileContents(assetPath('expected-ticket.xsd'));
+        // Get string content xml for compare on jsdom need remove xml header for match
+        const assetXml = fileContents(assetPath('expected-ticket.xsd')).replace(
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            ''
+        );
         const localXml = fileContents(local);
 
         expect(localXml).toEqualXML(assetXml);

@@ -1,16 +1,56 @@
-import { existsSync, readFileSync, writeFileSync, statSync, unlinkSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, statSync, unlinkSync } from 'node:fs';
 import { getSerializer, getParser } from '@nodecfdi/cfdiutils-common';
-import { Magic, MAGIC_MIME_TYPE } from 'mmmagic';
-import { dirname } from 'path';
+import { dirname } from 'node:path';
+import { fileTypeFromFile } from 'file-type';
+import { lookup } from 'mime-types';
 
 import { AbstractBaseRetriever } from './abstract-base-retriever';
-import { RetrieverInterface } from './retriever-interface';
+import { type RetrieverInterface } from './retriever-interface';
 import { Utils } from './utils';
-import { DownloaderInterface } from './downloader/downloader-interface';
+import { type DownloaderInterface } from './downloader/downloader-interface';
 
 export abstract class AbstractXmlRetriever extends AbstractBaseRetriever implements RetrieverInterface {
+    // eslint-disable-next-line @typescript-eslint/no-useless-constructor
     constructor(basePath: string, downloader?: DownloaderInterface) {
         super(basePath, downloader);
+    }
+
+    public async retrieve(url: string): Promise<string> {
+        this.clearHistory();
+
+        return this.doRetrieve(url);
+    }
+
+    /**
+     * This method checks if the recently downloaded file from source located at path
+     * is a valid resource, if not will remove the file and throw an exception
+     *
+     * @param source -
+     * @param localPath -
+     *
+     */
+    protected async checkIsValidDownloadedFile(source: string, localPath: string): Promise<void> {
+        return new Promise<void>((resolve, reject) => {
+            const statsFile = statSync(localPath);
+            if (statsFile.size === 0) {
+                unlinkSync(localPath);
+
+                reject(new Error(`The source ${source} is not an xml file because it is empty`));
+                return;
+            }
+
+            void fileTypeFromFile(localPath).then((result) => {
+                if (result?.mime !== 'application/xml' && !result?.mime.startsWith('text/')) {
+                    const mimeType = lookup(localPath);
+                    if (!mimeType || (mimeType !== 'application/xml' && !mimeType.startsWith('text/'))) {
+                        unlinkSync(localPath);
+                        reject(new Error(`The source ${source} (${result!.mime}) is not an xml file`));
+                    }
+                }
+
+                resolve();
+            });
+        });
     }
 
     /**
@@ -24,13 +64,7 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
      * "element" is the tag name to search for
      * "attribute" is the attribute name that contains the url
      */
-    protected abstract searchElements(): Record<string, string>[];
-
-    public retrieve(url: string): Promise<string> {
-        this.clearHistory();
-
-        return this.doRetrieve(url);
-    }
+    protected abstract searchElements(): Array<Record<string, string>>;
 
     private async doRetrieve(resource: string): Promise<string> {
         const localFileName = await this.download(resource);
@@ -38,39 +72,45 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
 
         let fileContent = '';
         if (existsSync(localFileName)) {
-            fileContent = readFileSync(localFileName, 'utf-8');
+            fileContent = readFileSync(localFileName, 'utf8');
         }
 
-        let docParse: Document | null = null;
+        let documentParse: Document | null = null;
         const parser = getParser();
         const errors: Record<string, unknown> = {};
 
         // Only for @xmldom/xmldom capture not error fatal
         if ((parser as unknown as Record<string, unknown>).options) {
             (parser as unknown as Record<string, Record<string, unknown>>).options = {
-                errorHandler: (level: string, msg: unknown): void => {
-                    errors[level] = msg;
+                errorHandler(level: string, message: unknown): void {
+                    errors[level] = message;
                 },
                 locator: {}
             };
         }
 
         try {
-            docParse = parser.parseFromString(fileContent, 'text/xml');
+            documentParse = parser.parseFromString(fileContent, 'text/xml');
 
-            if (Object.keys(errors).length !== 0 || !docParse.documentElement) {
+            const elementParserError = documentParse.getElementsByTagName('parsererror');
+            if (elementParserError.length > 0) {
+                errors.warning = elementParserError[0].textContent;
                 throw new Error('Invalid xml');
             }
-        } catch (e) {
+
+            if (Object.keys(errors).length > 0 || !documentParse.documentElement) {
+                throw new Error('Invalid xml');
+            }
+        } catch (error) {
             unlinkSync(localFileName);
 
-            throw new Error(`The source ${resource} contains errors: ${(e as Error).message}`);
+            throw new Error(`The source ${resource} contains errors: ${(error as Error).message}`);
         }
 
         let changed = false;
-        for (const search of this.searchElements()) {
+        for await (const search of this.searchElements()) {
             const recursiveRetrieve = await this.recursiveRetrieve(
-                docParse,
+                documentParse,
                 search.element,
                 search.attribute,
                 resource,
@@ -82,34 +122,38 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
         }
 
         if (changed) {
-            const changedXml = getSerializer().serializeToString(docParse);
-            writeFileSync(localFileName, changedXml, 'utf-8');
+            const changedXml = getSerializer().serializeToString(documentParse);
+            writeFileSync(localFileName, changedXml, 'utf8');
         }
 
         return localFileName;
     }
 
     private async recursiveRetrieve(
-        doc: Document,
+        document: Document,
         tagName: string,
         attributeName: string,
         currentUrl: string,
         currentFile: string
     ): Promise<boolean> {
         let modified = false;
-        const elements = doc.getElementsByTagNameNS(this.searchNamespace(), tagName);
-        for (const element of Array.from(elements)) {
+        const elements = document.getElementsByTagNameNS(this.searchNamespace(), tagName);
+        // eslint-disable-next-line unicorn/prefer-spread
+        for await (const element of Array.from(elements)) {
             if (!element.hasAttribute(attributeName)) {
                 continue;
             }
+
             let location = element.getAttribute(attributeName);
-            if (!location || location == '') {
+            if (!location || location === '') {
                 continue;
             }
+
             location = this.relativeToAbsoluteUrl(location, currentUrl);
-            if (Object.keys(this.retrieveHistory()).indexOf(location) !== -1) {
+            if (Object.keys(this.retrieveHistory()).includes(location)) {
                 continue;
             }
+
             const downloadChild = await this.doRetrieve(location);
             const relative = Utils.relativePath(currentFile, downloadChild);
             element.setAttribute(attributeName, relative);
@@ -119,49 +163,18 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
         return modified;
     }
 
-    /**
-     * This method checks if the recently downloaded file from source located at path
-     * is a valid resource, if not will remove the file and throw an exception
-     *
-     * @param source -
-     * @param localPath -
-     *
-     */
-    protected checkIsValidDownloadedFile(source: string, localPath: string): Promise<void> {
-        return new Promise<void>((resolve, reject) => {
-            const statsFile = statSync(localPath);
-            if (statsFile.size === 0) {
-                unlinkSync(localPath);
-
-                return reject(new Error(`The source ${source} is not an xml file because it is empty`));
-            }
-            const magic = new Magic(MAGIC_MIME_TYPE);
-            magic.detectFile(localPath, (_err, result) => {
-                if (
-                    typeof result !== 'string' ||
-                    ('application/xml' !== result && 'text/' !== result.substring(0, 5))
-                ) {
-                    unlinkSync(localPath);
-
-                    return reject(new Error(`The source ${source} (${result}) is not an xml file`));
-                }
-
-                return resolve();
-            });
-        });
-    }
-
     private relativeToAbsoluteUrl(url: string, currentUrl: string): string {
         if (this.urlParts(url)) {
             return url;
         }
-        const currentParts = this.urlParts(currentUrl) || {};
+
+        const currentParts = this.urlParts(currentUrl) ?? {};
 
         return [
-            currentParts['scheme'],
+            currentParts.scheme,
             '//',
-            currentParts['host'],
-            Utils.simplifyPath(dirname(currentParts['path']) + '/' + url).join('/')
+            currentParts.host,
+            Utils.simplifyPath(dirname(currentParts.path) + '/' + url).join('/')
         ].join('');
     }
 }
