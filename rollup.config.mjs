@@ -8,7 +8,7 @@ const name = 'dist/xml-resource-retriever';
 const bundle = (config) => ({
     ...config,
     input: 'src/index.ts',
-    external: ['@nodecfdi/cfdiutils-common']
+    external: ['@nodecfdi/cfdiutils-common', 'file-type', 'mime-types', 'mkdirp']
 });
 
 export default [
