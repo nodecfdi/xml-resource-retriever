@@ -92,6 +92,12 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
         try {
             documentParse = parser.parseFromString(fileContent, 'text/xml');
 
+            const elementParserError = documentParse.getElementsByTagName('parsererror');
+            if (elementParserError.length > 0) {
+                errors.warning = elementParserError[0].textContent;
+                throw new Error('Invalid xml');
+            }
+
             if (Object.keys(errors).length > 0 || !documentParse.documentElement) {
                 throw new Error('Invalid xml');
             }
