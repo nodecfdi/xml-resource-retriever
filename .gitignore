@@ -23,7 +23,8 @@ jspm_packages
 *.tsbuildinfo
 
 # Testing
-/coverage
+coverage
+tests/public/www.sat.gob.mx
 
 # Pnpm
 .pnpm-debug.log
