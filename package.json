@@ -3,13 +3,25 @@
   "description": "XSD and XLST resource downloader for local storage",
   "version": "1.1.1",
   "type": "module",
-  "main": "",
-  "module": "",
-  "types": "",
+  "module": "./dist/esm/index.js",
   "files": [
     "dist"
   ],
-  "exports": {},
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      }
+    },
+    "./types": {
+      "import": {
+        "types": "./dist/esm/types.d.ts",
+        "default": "./dist/esm/types.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
   "imports": {
     "#src/*": "./src/*.js"
   },
@@ -36,7 +48,7 @@
     "@commitlint/config-conventional": "^19.5.0",
     "@jsprismarine/typedoc-material-theme": "^1.0.4",
     "@nodecfdi/cfdi-core": "^0.5.1",
-    "@nodecfdi/eslint-config": "^2.0.2",
+    "@nodecfdi/eslint-config": "^2.0.3",
     "@nodecfdi/prettier-config": "^1.2.0",
     "@nodecfdi/tsconfig": "^1.7.2",
     "@types/node": "^20.16.5",
@@ -59,7 +71,7 @@
     "mime": "^4.0.4"
   },
   "peerDependencies": {
-    "@nodecfdi/cfdi-core": "^0.5.1"
+    "@nodecfdi/cfdi-core": ">=0.5.1"
   },
   "author": "Fernando Isidro <luffynando@gmail.com>",
   "license": "MIT",
@@ -107,8 +119,12 @@
   },
   "tshy": {
     "selfLink": false,
+    "dialects": [
+      "esm"
+    ],
     "exports": {
       ".": "./src/index.ts",
+      "./types": "./src/types.ts",
       "./package.json": "./package.json"
     }
   }
