@@ -1,0 +1,51 @@
+name: build
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    - cron: '0 16 * * 0' # sunday 16:00
+
+jobs:
+  quality_code:
+    uses: nodecfdi/.github/.github/workflows/quality_code.yml@main
+
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: ['16', '18', '19', '20', '21', '22']
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: latest
+          standalone: true
+          run_install: true
+
+      - name: Install tests/public/www.sat.gob.mx
+        run: |
+          if [ -z "$(which wget)" ]; then
+            apt-get -q update
+            apt-get -q install wget
+          fi
+          cd tests/public
+          rm -r -f www.sat.gob.mx
+          wget -q -r -i sat-urls.txt
+          find -type f -name "*.x*" -exec sed -i 's#http://www.sat.gob.mx/sitio_internet#http://localhost:8999/www.sat.gob.mx/sitio_internet#g' "{}" \;
+
+      - name: Run tests
+        run: pnpm run test:run
+        env:
+          CI: true
