@@ -10,6 +10,5 @@ export default defineConfig({
       include: ['src/**/*.ts'],
     },
     globalSetup: ['./tests/global_setup.ts'],
-    poolOptions: { threads: { singleThread: true } },
   },
 });

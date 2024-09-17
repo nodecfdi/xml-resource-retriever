@@ -2,11 +2,15 @@ import 'jest-xml-matcher';
 import { existsSync, readFileSync } from 'node:fs';
 import { EOL } from 'node:os';
 import XsdRetriever from '#src/xsd_retriever';
-import { buildPath, deleteDirectory, fileContent, filePath, publicPath } from '../test_utils.js';
+import { buildPath, fileContent, filePath, publicPath } from '../test_utils.js';
+import useRetriever from '../use_retriever.js';
 
 describe('xsd retriever', () => {
+  const { pathToClear } = useRetriever();
+
   test('retrieve recursive', async () => {
     const localPath = buildPath('recursive');
+    pathToClear(localPath);
     const retriever = new XsdRetriever(localPath);
     const remote = 'http://localhost:8999/xsd/entities/ticket.xsd';
     const expectedRemotes = [
@@ -28,8 +32,6 @@ describe('xsd retriever', () => {
     const localXml = fileContent(local);
 
     expect(localXml).toEqualXML(assetXml);
-
-    await deleteDirectory(localPath);
   });
 
   test.runIf(existsSync(publicPath('www.sat.gob.mx')) && existsSync(publicPath('sat-urls.txt')))(
@@ -37,6 +39,7 @@ describe('xsd retriever', () => {
     async () => {
       const pathSatUrls = publicPath('sat-urls.txt');
       const localPath = buildPath('SATXSD');
+      pathToClear(localPath);
       const remotePrefix = 'http://localhost:8999/www.sat.gob.mx/sitio_internet/';
       const remote = `${remotePrefix}cfd/3/cfdv33.xsd`;
       const retriever = new XsdRetriever(localPath);
@@ -52,8 +55,6 @@ describe('xsd retriever', () => {
       for (const expectedRemote of expectedRemotes) {
         expect(existsSync(retriever.buildPath(`${remotePrefix}${expectedRemote}`))).toBeTruthy();
       }
-
-      await deleteDirectory(localPath);
     },
     30_000,
   );
