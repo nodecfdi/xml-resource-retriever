@@ -1,8 +1,6 @@
 import { existsSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { getParser, getSerializer, MIME_TYPE } from '@nodecfdi/cfdi-core';
-import { fileTypeFromFile } from 'file-type';
-import mime from 'mime';
 import AbstractBaseRetriever from '#src/abstract_base_retriever';
 import { type DownloaderInterface, type RetrieverInterface } from '#src/types';
 import { relativePath, simplifyPath } from '#src/utils/path_utils';
@@ -32,9 +30,11 @@ export default abstract class AbstractXmlRetriever
       throw new Error(`The source ${source} is not an xml file because it is empty`);
     }
 
+    const { fileTypeFromFile } = await import('file-type');
     const result = await fileTypeFromFile(localPath);
     let mimeType: string | undefined = result?.mime;
     if (!mimeType) {
+      const { default: mime } = await import('mime');
       mimeType = mime.getType(localPath) ?? undefined;
     }
 
