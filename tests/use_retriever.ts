@@ -1,4 +1,4 @@
-import { buildPath, deleteDirectory } from './test_utils.js';
+import { deleteDirectory, rawBuildPath } from './test_utils.js';
 
 const useRetriever = () => {
   let selectedPathToClear = '';
@@ -8,7 +8,7 @@ const useRetriever = () => {
       return selectedPathToClear;
     }
 
-    if (path.indexOf(buildPath(''))) {
+    if (path.indexOf(rawBuildPath(''))) {
       throw new Error('Unable to set a path to clear that is not in the build path');
     }
 

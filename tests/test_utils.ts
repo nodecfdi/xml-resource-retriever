@@ -21,6 +21,9 @@ export const filePath = (file: string): string =>
   path.join(getDirname(import.meta.url), '_files', file);
 
 export const buildPath = (file: string): string =>
+  path.join(getDirname(import.meta.url), '_build', Date.now().toString(), file);
+
+export const rawBuildPath = (file: string): string =>
   path.join(getDirname(import.meta.url), '_build', file);
 
 export const publicPath = (file: string): string =>
