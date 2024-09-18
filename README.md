@@ -27,78 +27,11 @@ You can use the local object `NodeDownloader` that simply uses copy function to 
 can also use your own implementation of the DownloaderInterface according to your needs. If you built a configurable and
 useful downloader class feel free to contribute it to this project.
 
-Based on php version repo: <https://github.com/eclipxe13/XmlResourceRetriever>
+Based on php version repo: https://github.com/eclipxe13/XmlResourceRetriever
 
-## Installation
+## Documentación
 
-NPM
-
-```bash
-npm i @nodecfdi/xml-resource-retriever --save
-```
-
-YARN
-
-```bash
-yarn add @nodecfdi/xml-resource-retriever
-```
-
-PNPM
-
-```bash
-pnpm add @nodecfdi/xml-resource-retriever
-```
-
-## Basic usage
-
-Example with [xmldom](https://www.npmjs.com/package/@xmldom/xmldom)
-
-```ts
-import { install } from '@nodecfdi/cfdiutils-common';
-import { XMLSerializer, DOMParser, DOMImplementation } from '@xmldom/xmldom';
-import { XsltRetriever } from '@nodecfdi/xml-resource-retriever';
-
-install(new DOMParser(), new XMLSerializer(), new DOMImplementation());
-
-const xslt = new XsltRetriever('/project/cache');
-const local = await xslt.retrieve('http://www.sat.gob.mx/sitio_internet/cfd/3/cadenaoriginal_3_3/cadenaoriginal_3_3.xslt');
-
-console.log(local); /* /project/cache/www.sat.gob.mx/sitio_internet/cfd/3/cadenaoriginal_3_3/cadenaoriginal_3_3.xslt */
-```
-
-Example with [jsdom](https://www.npmjs.com/package/jsdom)
-
-```ts
-import { install } from '@nodecfdi/cfdiutils-common';
-import { JSDOM } from 'jsdom';
-import { XsltRetriever } from 'nodecfdi/xml-resource-retriever';
-
-const dom = new JSDOM();
-const jsDOMParser = new dom.window.DOMParser();
-const jsXMLSerializer = new dom.window.XMLSerializer();
-const jsDOMImplementation = dom.window.document.implementation;
-install(jsDOMParser, jsXMLSerializer, jsDOMImplementation);
-
-const xslt = new XsltRetriever('/project/cache');
-const local = await xslt.retrieve('http://www.sat.gob.mx/sitio_internet/cfd/3/cadenaoriginal_3_3/cadenaoriginal_3_3.xslt');
-
-console.log(local); /* /project/cache/www.sat.gob.mx/sitio_internet/cfd/3/cadenaoriginal_3_3/cadenaoriginal_3_3.xslt */
-```
-
-## Retriever more information
-
-These methods apply to `XslRetriever` and `XsltRetriever`
-
-- `retrieve(url)` Download recursively an url and store it into the retriever base path, it changes the child elements
-  that contains references to other files.
-- `download(url)`  Download an url and store it into the retriever base path. It does not validate the file for xml
-  errors. It does not download dependence's.
-- `buildPath(url)` Return the location of were a file should be stored according to the base path.
-- `setDownloader(downloader)` Change the default `NodeDownloader` to a custom implementation.
-
-`XsdRetriever` search for namespace `http://www.w3.org/2001/XMLSchema` elements `import` and `include`.
-
-`XsltRetriever` search for namespace `http://www.w3.org/1999/XSL/Transform` elements `import` and `include`.
+La documentación está disponible en el sitio web [NodeCfdi](https://nodecfdi.com/librarys/xml-resource-retriever/getting-started/)
 
 ## Soporte
 
@@ -121,21 +54,19 @@ Las contribuciones con bienvenidas. Por favor lee [CONTRIBUTING][] para más det
 
 The `@nodecfdi/xml-resource-retriever` library is copyright © [NodeCfdi](https://github.com/nodecfdi) - [OcelotlStudio](https://ocelotlstudio.com) and licensed for use under the MIT License (MIT). Please see [LICENSE][] for more information.
 
-[contributing]: https://github.com/nodecfdi/xml-resource-retriever/blob/main/CONTRIBUTING.md
+[contributing]: https://github.com/nodecfdi/.github/blob/main/docs/CONTRIBUTING.md
 [changelog]: https://github.com/nodecfdi/xml-resource-retriever/blob/main/CHANGELOG.md
-
 [source]: https://github.com/nodecfdi/xml-resource-retriever
 [node-version]: https://www.npmjs.com/package/@nodecfdi/xml-resource-retriever
 [discord]: https://discord.gg/AsqX8fkW2k
 [release]: https://www.npmjs.com/package/@nodecfdi/xml-resource-retriever
-[license]: https://github.com/nodecfdi/xml-resource-retriever/blob/main/LICENSE
+[license]: https://github.com/nodecfdi/xml-resource-retriever/blob/main/LICENSE.md
 [build]: https://github.com/nodecfdi/xml-resource-retriever/actions/workflows/build.yml?query=branch:main
-[reliability]:https://sonarcloud.io/component_measures?id=nodecfdi_xml-resource-retriever&metric=Reliability
+[reliability]: https://sonarcloud.io/component_measures?id=nodecfdi_xml-resource-retriever&metric=Reliability
 [maintainability]: https://sonarcloud.io/component_measures?id=nodecfdi_xml-resource-retriever&metric=Maintainability
 [coverage]: https://sonarcloud.io/component_measures?id=nodecfdi_xml-resource-retriever&metric=Coverage
 [violations]: https://sonarcloud.io/project/issues?id=nodecfdi_xml-resource-retriever&resolved=false
 [downloads]: https://www.npmjs.com/package/@nodecfdi/xml-resource-retriever
-
 [badge-source]: https://img.shields.io/badge/source-nodecfdi/xml--resource--retriever-blue.svg?logo=github
 [badge-node-version]: https://img.shields.io/node/v/@nodecfdi/xml-resource-retriever.svg?logo=nodedotjs
 [badge-discord]: https://img.shields.io/discord/459860554090283019?logo=discord
