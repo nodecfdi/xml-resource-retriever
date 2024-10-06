@@ -11,9 +11,10 @@ export default defineConfig({
     },
     globalSetup: ['./tests/global_setup.ts'],
     poolOptions: {
-      threads: {
-        singleThread: true,
+      forks: {
+        singleFork: true,
       },
     },
+    pool: 'forks',
   },
 });
