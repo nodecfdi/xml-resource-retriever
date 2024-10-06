@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { getParser, getSerializer, MIME_TYPE } from '@nodecfdi/cfdi-core';
+import { type Document, getParser, getSerializer, MIME_TYPE } from '@nodecfdi/cfdi-core';
 import AbstractBaseRetriever from '#src/abstract_base_retriever';
 import { type DownloaderInterface, type RetrieverInterface } from '#src/types';
 import { relativePath, simplifyPath } from '#src/utils/path_utils';
@@ -76,7 +76,7 @@ export default abstract class AbstractXmlRetriever
     }
 
     let changed = false;
-    for await (const search of this.searchElements()) {
+    for (const search of this.searchElements()) {
       const recursiveRetrieve = await this.recursiveRetrieve(
         documentParse,
         search.element,
@@ -106,8 +106,7 @@ export default abstract class AbstractXmlRetriever
   ): Promise<boolean> {
     let modified = false;
     const elements = document.getElementsByTagNameNS(this.searchNamespace(), tagName);
-    // eslint-disable-next-line unicorn/prefer-spread
-    for (const element of Array.from(elements)) {
+    for (const element of elements) {
       if (!element.hasAttribute(attributeName)) {
         continue;
       }
