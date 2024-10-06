@@ -57,14 +57,14 @@
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
     "@jsprismarine/typedoc-material-theme": "^1.0.4",
-    "@nodecfdi/cfdi-core": "^0.5.1",
-    "@nodecfdi/eslint-config": "^2.0.3",
+    "@nodecfdi/cfdi-core": "^0.6.1",
+    "@nodecfdi/eslint-config": "^2.0.6",
     "@nodecfdi/prettier-config": "^1.2.0",
     "@nodecfdi/tsconfig": "^1.7.2",
-    "@types/node": "^20.16.5",
-    "@vitest/coverage-istanbul": "^2.1.1",
+    "@types/node": "^20.16.10",
+    "@vitest/coverage-istanbul": "^2.1.2",
     "auto-changelog": "^2.5.0",
-    "eslint": "^9.10.0",
+    "eslint": "^9.12.0",
     "glob": "^11.0.0",
     "husky": "^9.1.6",
     "is-in-ci": "^1.0.0",
@@ -73,16 +73,16 @@
     "prettier": "^3.3.3",
     "rimraf": "^6.0.1",
     "tshy": "^3.0.2",
-    "typedoc": "^0.26.7",
+    "typedoc": "^0.26.8",
     "typescript": "^5.6.2",
-    "vitest": "^2.1.1"
+    "vitest": "^2.1.2"
   },
   "dependencies": {
     "file-type": "^19.5.0",
     "mime": "^4.0.4"
   },
   "peerDependencies": {
-    "@nodecfdi/cfdi-core": ">=0.5.1"
+    "@nodecfdi/cfdi-core": ">=0.6.1"
   },
   "author": "Fernando Isidro <luffynando@gmail.com>",
   "license": "MIT",
@@ -113,7 +113,7 @@
     ]
   },
   "prettier": "@nodecfdi/prettier-config",
-  "packageManager": "pnpm@9.10.0",
+  "packageManager": "pnpm@9.12.0",
   "publishConfig": {
     "access": "public",
     "tag": "latest"
