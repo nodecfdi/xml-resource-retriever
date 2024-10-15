@@ -27,20 +27,12 @@ export default class NodeDownloader implements DownloaderInterface {
         resolve();
       });
 
-      sendRequest.on('error', () => {
-        unlinkSync(destination);
-
-        reject(new Error(`Unable to download ${source} to ${destination}`));
+      sendRequest.on('error', (error) => {
+        this.handleError(error, `Unable to download ${source} to ${destination}`, destination);
       });
 
-      writeStream.on('error', () => {
-        try {
-          unlinkSync(destination);
-        } catch {
-          //
-        }
-
-        reject(new Error(`Unable to download ${source} to ${destination}`));
+      writeStream.on('error', (error) => {
+        this.handleError(error, `Unable to download ${source} to ${destination}`, destination);
       });
     });
   }
@@ -53,5 +45,15 @@ export default class NodeDownloader implements DownloaderInterface {
     const targetUrl = new URL(inputUrl);
 
     return adapter[targetUrl.protocol];
+  }
+
+  private handleError(error: unknown, message: string, destination: string): AggregateError {
+    try {
+      unlinkSync(destination);
+    } catch {
+      //
+    }
+
+    return new AggregateError([error], message);
   }
 }
