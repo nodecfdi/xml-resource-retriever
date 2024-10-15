@@ -5,7 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v2.0.0](https://luffynando.github.com/nodecfdi/xml-resource-retriever/compare/v1.1.1...v2.0.0)
+## [v2.0.1](https://luffynando.github.com/nodecfdi/xml-resource-retriever/compare/v2.0.0...v2.0.1)
+
+### Commits
+
+- test: :test_tube: update how to handle local server for retrieve files public [`8d5d08e`](https://luffynando.github.com/nodecfdi/xml-resource-retriever/commit/8d5d08e192952bc1700bce326b3383c28f824362)
+- test: :test_tube: increment code coverage and correct handle reject on node downloader [`ac6d7d4`](https://luffynando.github.com/nodecfdi/xml-resource-retriever/commit/ac6d7d4af2f192f8a33ba48977d03d0c59b43e1b)
+- perf: :building_construction: move handle error on private method for node downloader [`5907f3f`](https://luffynando.github.com/nodecfdi/xml-resource-retriever/commit/5907f3f69bddda869b82a48233a8177f52a37a83)
+
+## [v2.0.0](https://luffynando.github.com/nodecfdi/xml-resource-retriever/compare/v1.1.1...v2.0.0) - 2024-09-18
 
 ### Merged
 
