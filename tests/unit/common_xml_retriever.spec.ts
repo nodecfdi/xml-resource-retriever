@@ -42,7 +42,7 @@ describe('common xml retriever', () => {
     await expect(t).rejects.toThrow('The argument to download is empty');
   });
 
-  test('download_simple_case', async () => {
+  test('download simple case', async () => {
     const localPath = buildPath('foo');
     pathToClear(localPath);
     const remoteFile = 'http://localhost:8999/xsd/simple.xsd';
@@ -67,7 +67,7 @@ describe('common xml retriever', () => {
     expect(downloadedXml).toEqualXML(publicXml);
   }, 30_000);
 
-  test('download_throws_exception_on_empty_file', async () => {
+  test('download throws exception on empty file', async () => {
     const localPath = buildPath('empty');
     pathToClear(localPath);
     const remote = 'http://localhost:8999/other/empty.xml';
@@ -78,7 +78,7 @@ describe('common xml retriever', () => {
     await expect(t).rejects.toThrow(`The source ${remote} is not an xml file because it is empty`);
   }, 30_000);
 
-  test('download_not_an_xml_file_throws_an_exception_and_remove_the_file', async () => {
+  test('download not an xml file throws an exception and remove the file', async () => {
     const localPath = buildPath('other');
     pathToClear(localPath);
     const remote = 'http://localhost:8999/other/sample.gz';
@@ -94,7 +94,7 @@ describe('common xml retriever', () => {
     expect(existsSync(local)).toBeFalsy();
   }, 30_000);
 
-  test('download_non_existent', async () => {
+  test('download non existent', async () => {
     const localPath = buildPath('non-existent');
     pathToClear(localPath);
     const remote = 'http://localhost:8999/non-existent-resource.txt';
@@ -108,7 +108,7 @@ describe('common xml retriever', () => {
     await expect(t).rejects.toThrow(`Unable to download ${remote} to ${destination}`);
   }, 30_000);
 
-  test('download_to_non_writable', async () => {
+  test('download to non writable', async () => {
     const localPath = '/bin/bash';
     const remote = 'http://localhost:8999/other/sample.xml';
     const retriever = new CommonXmlRetriever(localPath);
@@ -119,11 +119,25 @@ describe('common xml retriever', () => {
     await expect(t).rejects.toThrow('Unable to create directory /bin/bash/localhost:8999/other');
   });
 
+  test('download on non operative server', async () => {
+    const localPath = buildPath('non-existent');
+    pathToClear(localPath);
+    const remote = 'http://localhost:8080/other/sample.xml';
+    const retriever = new CommonXmlRetriever(localPath);
+
+    const destination = retriever.buildPath(remote);
+
+    const t = async (): Promise<string> => retriever.download(remote);
+
+    await expect(t).rejects.toBeInstanceOf(Error);
+    await expect(t).rejects.toThrow(`Unable to download ${remote} to ${destination}`);
+  });
+
   test.each([
     ['xml correct', 'http://localhost:8999/other/sample.xml'],
     ['xml without header', 'http://localhost:8999/other/xml-without-header.xml'],
   ])(
-    'retrieve_xml_valid_cases %s',
+    'retrieve xml valid cases %s',
     async (_name: string, remote: string) => {
       const localPath = buildPath('sample');
       pathToClear(localPath);
@@ -139,7 +153,7 @@ describe('common xml retriever', () => {
     ['xml with just header', 'http://localhost:8999/other/xml-just-header.xml'],
     ['xml malformed', 'http://localhost:8999/other/malformed.xml'],
   ])(
-    'retrieve_xml_with_errors %s',
+    'retrieve xml with errors %s',
     async (_name: string, remote: string) => {
       const localPath = buildPath('malformed');
       pathToClear(localPath);
@@ -157,7 +171,7 @@ describe('common xml retriever', () => {
   );
 
   test.each([['scheme://host'], ['host/path'], ['not-an-url']])(
-    'build_path_with_invalid_url %s',
+    'build path with invalid url %s',
     (url: string) => {
       const retriever = new CommonXmlRetriever('basepath');
 
@@ -168,7 +182,7 @@ describe('common xml retriever', () => {
     },
   );
 
-  test('retrieve_with_history', async () => {
+  test('retrieve with history', async () => {
     const localPath = buildPath('common');
     pathToClear(localPath);
     const remoteParent = 'http://localhost:8999/other/common/parent.xml';

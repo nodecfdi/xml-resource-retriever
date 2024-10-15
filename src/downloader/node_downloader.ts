@@ -15,9 +15,13 @@ export default class NodeDownloader implements DownloaderInterface {
           response.pipe(writeStream);
         } else {
           writeStream.close();
-          unlinkSync(destination);
-
-          reject(new Error(`Unable to download ${source} to ${destination}`));
+          reject(
+            this.handleError(
+              response.statusMessage,
+              `Unable to download ${source} to ${destination}`,
+              destination,
+            ),
+          );
         }
       });
 
@@ -28,11 +32,15 @@ export default class NodeDownloader implements DownloaderInterface {
       });
 
       sendRequest.on('error', (error) => {
-        this.handleError(error, `Unable to download ${source} to ${destination}`, destination);
+        reject(
+          this.handleError(error, `Unable to download ${source} to ${destination}`, destination),
+        );
       });
 
       writeStream.on('error', (error) => {
-        this.handleError(error, `Unable to download ${source} to ${destination}`, destination);
+        reject(
+          this.handleError(error, `Unable to download ${source} to ${destination}`, destination),
+        );
       });
     });
   }
