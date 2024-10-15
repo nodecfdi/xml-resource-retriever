@@ -45,6 +45,7 @@ export const startServer = async (host: string, port: number): Promise<http.Serv
     });
 
     server.listen(port, host, () => {
+      console.info('Server started in', host, port);
       resolve(server);
     });
   });

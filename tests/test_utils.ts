@@ -21,7 +21,7 @@ export const filePath = (file: string): string =>
   path.join(getDirname(import.meta.url), '_files', file);
 
 export const buildPath = (file: string): string =>
-  path.join(getDirname(import.meta.url), '_build', Date.now().toString(), file);
+  path.join(getDirname(import.meta.url), '_build', `${file}_${Date.now().toString()}`);
 
 export const rawBuildPath = (file: string): string =>
   path.join(getDirname(import.meta.url), '_build', file);
@@ -34,38 +34,20 @@ export const fileContent = (file: string): string => {
     return '';
   }
 
-  return readFileSync(file).toString();
+  return readFileSync(file).toString('utf8');
 };
 
 export const fileContents = (append: string): string => fileContent(filePath(append));
 
-export const deleteDirectory = async (dirname: string): Promise<void> =>
-  // eslint-disable-next-line @typescript-eslint/no-misused-promises
-  new Promise<void>((resolve, reject) => {
-    if (!existsSync(dirname)) {
-      resolve();
+export const deleteDirectory = async (dirname: string): Promise<void> => {
+  if (!existsSync(dirname)) {
+    return;
+  }
 
-      return;
-    }
+  const stat = statSync(dirname);
+  if (!stat.isDirectory()) {
+    return;
+  }
 
-    const stat = statSync(dirname);
-    if (!stat.isDirectory()) {
-      resolve();
-
-      return;
-    }
-
-    // eslint-disable-next-line no-promise-executor-return
-    return (
-      rimraf(dirname)
-        // eslint-disable-next-line promise/always-return, promise/prefer-await-to-then
-        .then(() => {
-          resolve();
-        })
-        // eslint-disable-next-line promise/prefer-await-to-then
-        .catch((error: unknown) => {
-          // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
-          reject(error);
-        })
-    );
-  });
+  await rimraf(dirname);
+};

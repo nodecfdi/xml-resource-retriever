@@ -10,6 +10,7 @@ coverage
 build
 _build
 dist
+tests/public/www.sat.gob.mx
 yarn.lock
 shrinkwrap.yaml
 package-lock.json

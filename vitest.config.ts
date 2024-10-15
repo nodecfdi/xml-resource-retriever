@@ -9,6 +9,12 @@ export default defineConfig({
       reporter: ['text', 'lcov'],
       include: ['src/**/*.ts'],
     },
-    globalSetup: ['./tests/global_setup.ts'],
+    setupFiles: ['./tests/setup_server.ts'],
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
   },
 });
