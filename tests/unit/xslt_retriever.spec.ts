@@ -1,7 +1,7 @@
 import 'jest-xml-matcher';
 import { existsSync, readFileSync } from 'node:fs';
 import { EOL } from 'node:os';
-import XsltRetriever from '#src/xslt_retriever';
+import XsltRetriever from '../../src/xslt_retriever.js';
 import { buildPath, fileContent, filePath, publicPath } from '../test_utils.js';
 import useRetriever from '../use_retriever.js';
 

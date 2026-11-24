@@ -1,6 +1,6 @@
-export { default as AbstractBaseRetriever } from '#src/abstract_base_retriever';
-export { default as AbstractXmlRetriever } from '#src/abstract_xml_retriever';
-export { default as NodeDownloader } from '#src/downloader/node_downloader';
-export * from '#src/utils/path_utils';
-export { default as XsdRetriever } from '#src/xsd_retriever';
-export { default as XsltRetriever } from '#src/xslt_retriever';
+export { default as AbstractBaseRetriever } from './abstract_base_retriever.js';
+export { default as AbstractXmlRetriever } from './abstract_xml_retriever.js';
+export { default as NodeDownloader } from './downloader/node_downloader.js';
+export * from './utils/path_utils.js';
+export { default as XsdRetriever } from './xsd_retriever.js';
+export { default as XsltRetriever } from './xslt_retriever.js';

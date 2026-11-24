@@ -2,7 +2,7 @@ import { createWriteStream, unlinkSync } from 'node:fs';
 import http from 'node:http';
 import https from 'node:https';
 import { URL } from 'node:url';
-import { type DownloaderInterface } from '#src/types';
+import { type DownloaderInterface } from '../types.js';
 
 export default class NodeDownloader implements DownloaderInterface {
   public async downloadTo(source: string, destination: string): Promise<void> {

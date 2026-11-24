@@ -1,4 +1,4 @@
-import { relativePath, simplifyPath } from '#src/utils/path_utils';
+import { relativePath, simplifyPath } from '../../src/utils/path_utils.js';
 
 describe('path utils', () => {
   test.each([

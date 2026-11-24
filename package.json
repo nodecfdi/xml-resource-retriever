@@ -24,34 +24,11 @@
     "node",
     "nodejs"
   ],
-  "imports": {
-    "#src/*": "./src/*.js"
-  },
   "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/esm/index.d.ts",
-        "default": "./dist/esm/index.js"
-      },
-      "require": {
-        "types": "./dist/commonjs/index.d.ts",
-        "default": "./dist/commonjs/index.js"
-      }
-    },
-    "./types": {
-      "import": {
-        "types": "./dist/esm/types.d.ts",
-        "default": "./dist/esm/types.js"
-      },
-      "require": {
-        "types": "./dist/commonjs/types.d.ts",
-        "default": "./dist/commonjs/types.js"
-      }
-    }
+    ".": "./dist/index.js",
+    "./types": "./dist/types.js",
+    "./package.json": "./package.json"
   },
-  "main": "./dist/commonjs/index.js",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/commonjs/index.d.ts",
   "files": [
     "dist"
   ],

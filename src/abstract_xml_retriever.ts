@@ -1,9 +1,9 @@
 import { existsSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { type Document, getParser, getSerializer, MIME_TYPE } from '@nodecfdi/cfdi-core';
-import AbstractBaseRetriever from '#src/abstract_base_retriever';
-import { type DownloaderInterface, type RetrieverInterface } from '#src/types';
-import { relativePath, simplifyPath } from '#src/utils/path_utils';
+import AbstractBaseRetriever from './abstract_base_retriever.js';
+import { type DownloaderInterface, type RetrieverInterface } from './types.js';
+import { relativePath, simplifyPath } from './utils/path_utils.js';
 
 export default abstract class AbstractXmlRetriever
   extends AbstractBaseRetriever

@@ -1,4 +1,4 @@
-import AbstractXmlRetriever from '#src/abstract_xml_retriever';
+import AbstractXmlRetriever from './abstract_xml_retriever.js';
 
 export default class XsltRetriever extends AbstractXmlRetriever {
   protected searchElements(): Record<string, string>[] {
