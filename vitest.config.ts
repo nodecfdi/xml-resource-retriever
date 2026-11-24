@@ -8,12 +8,6 @@ export default defineConfig({
       include: ['src/**/*.ts'],
     },
     setupFiles: ['./tests/setup_server.ts'],
-    pool: 'threads',
-    poolOptions: {
-      threads: {
-        singleThread: true,
-      },
-    },
     isolate: false,
   },
 });
