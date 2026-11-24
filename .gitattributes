@@ -6,14 +6,13 @@
 /.husky/                    export-ignore
 /.vscode/                   export-ignore
 /tests/                     export-ignore
+/test_helpers/              export-ignore
 /.gitattributes             export-ignore
 /.gitignore                 export-ignore
 /sonar-project.properties   export-ignore
 
 # Do not count these files on github code language
-/tests/_files/**            linguist-detectable=false
-/tests/public/**            linguist-detectable=false
-/tests/_build/**            linguist-detectable=false
+/test_helpers/_files/**     linguist-detectable=false
 /docs/**                    linguist-detectable=false
 /.husky/**                  linguist-detectable=false
 *.cjs                       linguist-detectable=false

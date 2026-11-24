@@ -1,6 +1,15 @@
 {
-  "extends": "@nodecfdi/tsconfig/tsconfig.package.json",
   "compilerOptions": {
-    "types": ["vitest/globals", "@types/node"]
-  }
+    "target": "ESNext",
+    "rootDir": "./",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "**/*.ts"
+  ]
 }
