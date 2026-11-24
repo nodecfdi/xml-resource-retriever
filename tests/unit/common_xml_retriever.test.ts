@@ -1,12 +1,12 @@
-import 'jest-xml-matcher';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { globSync } from 'glob';
+import { describe, expect, test } from 'vitest';
 import AbstractBaseRetriever from '../../src/abstract_base_retriever.js';
 import NodeDownloader from '../../src/downloader/node_downloader.js';
-import { buildPath, fileContent, getDirname, publicPath } from '../test_utils.js';
-import useRetriever from '../use_retriever.js';
-import CommonXmlRetriever from './common_xml_retriever.js';
+import CommonXmlRetriever from '../../test_helpers/common_xml_retriever.js';
+import { buildPath, fileContent, getDirname, publicPath } from '../../test_helpers/test_utils.js';
+import useRetriever from '../../test_helpers/use_retriever.js';
 
 describe('common xml retriever', () => {
   const { pathToClear } = useRetriever();

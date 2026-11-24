@@ -1,3 +1,4 @@
+import { afterEach } from 'vitest';
 import { deleteDirectory, rawBuildPath } from './test_utils.js';
 
 const useRetriever = () => {

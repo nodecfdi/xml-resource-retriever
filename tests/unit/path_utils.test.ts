@@ -1,3 +1,4 @@
+import { describe, expect, test } from 'vitest';
 import { relativePath, simplifyPath } from '../../src/utils/path_utils.js';
 
 describe('path utils', () => {

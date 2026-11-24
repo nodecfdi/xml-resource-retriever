@@ -7,7 +7,7 @@ export default defineConfig({
       reporter: ['text', 'lcov'],
       include: ['src/**/*.ts'],
     },
-    setupFiles: ['./tests/setup_server.ts'],
-    isolate: false,
+    globalSetup: ['./test_helpers/setup_server.ts'],
+    setupFiles: ['./test_helpers/xml_matcher.ts'],
   },
 });
