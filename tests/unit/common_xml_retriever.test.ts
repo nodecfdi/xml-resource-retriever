@@ -122,7 +122,7 @@ describe('common xml retriever', () => {
   test('download on non operative server', async () => {
     const localPath = buildPath('non-existent');
     pathToClear(localPath);
-    const remote = 'http://localhost:8080/other/sample.xml';
+    const remote = 'http://non-operative.invalid/other/sample.xml';
     const retriever = new CommonXmlRetriever(localPath);
 
     const destination = retriever.buildPath(remote);
