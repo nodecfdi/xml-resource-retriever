@@ -8,9 +8,7 @@ export const startServer = async (host: string, port: number): Promise<http.Serv
     const server = http.createServer((request, response) => {
       const baseUrl = `http://${request.headers.host}/`;
       // Parse URL
-      const parsedUrl = new URL(request.url!, baseUrl);
-      // Extract URL path
-      const { pathname } = parsedUrl;
+      const { pathname } = new URL(request.url!, baseUrl);
       // Based on the URL path, extract the file extension. e.g. .js, .doc, ...
       const { ext } = path.parse(pathname);
       // Maps file extension to MIME typere

@@ -1,14 +1,14 @@
+import type { Document } from '@nodecfdi/cfdi-core';
+import type { DownloaderInterface, RetrieverInterface } from './types.js';
 import { existsSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { type Document, getParser, getSerializer, MIME_TYPE } from '@nodecfdi/cfdi-core';
+import { getParser, getSerializer, MIME_TYPE } from '@nodecfdi/cfdi-core';
 import AbstractBaseRetriever from './abstract_base_retriever.js';
-import { type DownloaderInterface, type RetrieverInterface } from './types.js';
 import { relativePath, simplifyPath } from './utils/path_utils.js';
 
 export default abstract class AbstractXmlRetriever
   extends AbstractBaseRetriever
-  implements RetrieverInterface
-{
+  implements RetrieverInterface {
   public constructor(basePath: string, downloader?: DownloaderInterface) {
     super(basePath, downloader);
   }
@@ -38,10 +38,12 @@ export default abstract class AbstractXmlRetriever
       mimeType = mime.getType(localPath) ?? undefined;
     }
 
-    if (mimeType !== 'application/xml' && !mimeType?.startsWith('text/')) {
-      unlinkSync(localPath);
-      throw new Error(`The source ${source} (${result!.mime}) is not an xml file`);
+    if (mimeType === 'application/xml' || mimeType?.startsWith('text/')) {
+      return;
     }
+
+    unlinkSync(localPath);
+    throw new Error(`The source ${source} (${result!.mime}) is not an xml file`);
   }
 
   /**
@@ -63,7 +65,7 @@ export default abstract class AbstractXmlRetriever
 
     let fileContent = '';
     if (existsSync(localFileName)) {
-      fileContent = readFileSync(localFileName, 'utf8').replaceAll(/^\uFEFF/g, '');
+      fileContent = readFileSync(localFileName, 'utf8').replaceAll(/^\u{FEFF}/gu, '');
     }
 
     let documentParse: Document | null = null;

@@ -1,8 +1,8 @@
+import type { DownloaderInterface, RetrieverInterface } from './types.js';
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import NodeDownloader from './downloader/node_downloader.js';
-import { type DownloaderInterface, type RetrieverInterface } from './types.js';
 
 export default abstract class AbstractBaseRetriever implements RetrieverInterface {
   private readonly _basePath: string;

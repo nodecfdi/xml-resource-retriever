@@ -1,7 +1,7 @@
 import { afterEach } from 'vitest';
 import { deleteDirectory, rawBuildPath } from './test_utils.js';
 
-const useRetriever = () => {
+const useRetriever = (): { pathToClear: (path?: string) => string } => {
   let selectedPathToClear = '';
 
   const pathToClear = (path = ''): string => {
@@ -19,7 +19,6 @@ const useRetriever = () => {
     return previousPath;
   };
 
-  // eslint-disable-next-line vitest/require-top-level-describe
   afterEach(async () => {
     if (pathToClear() !== '') {
       await deleteDirectory(pathToClear());
