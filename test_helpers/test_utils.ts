@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { rimraf } from 'rimraf';
 
 /**
  * Get filename for a given file path URL
@@ -50,5 +50,5 @@ export const deleteDirectory = async (dirname: string): Promise<void> => {
     return;
   }
 
-  await rimraf(dirname);
+  await rm(dirname, { recursive: true, force: true });
 };

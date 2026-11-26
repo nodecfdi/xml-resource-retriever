@@ -1,8 +1,7 @@
 import type { DownloaderInterface } from '../../src/types.js';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { globSync } from 'glob';
 import { describe, expect, test } from 'vitest';
 import { AbstractBaseRetriever } from '../../src/abstract_base_retriever.js';
 import { NodeDownloader } from '../../src/downloader/node_downloader.js';
@@ -267,7 +266,9 @@ describe('common xml retriever', () => {
     history['http://mutated.invalid/x.xml'] = '/tmp/mutated.xml';
     expect(Object.keys(retriever.retrieveHistory())).toHaveLength(expectedRetrievedFiles.length);
 
-    const retrievedFiles = globSync(`${expectedDestination}/*.xml`);
+    const retrievedFiles = readdirSync(expectedDestination)
+      .filter((file) => file.endsWith('.xml'))
+      .map((file) => `${expectedDestination}/${file}`);
     expect(retrievedFiles).toHaveLength(expectedRetrievedFiles.length);
 
     for (const retrievedFile of retrievedFiles) {
