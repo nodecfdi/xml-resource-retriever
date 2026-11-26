@@ -388,4 +388,36 @@ describe('common xml retriever', () => {
       'Maximum resource limit (2) exceeded',
     );
   });
+
+  test('downloads sibling resources concurrently up to the concurrency limit', async () => {
+    const localPath = buildPath('concurrent');
+    pathToClear(localPath);
+    let active = 0;
+    let maxActive = 0;
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (source, destination) => {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        await new Promise((resolve) => {
+          setTimeout(resolve, 20);
+        });
+        active -= 1;
+        const content = source.endsWith('entry.xml')
+          ? `<x:root xmlns:x="http://example.com/ns">${['a', 'b', 'c', 'd'].map((name) => `<x:resource href="${name}.xml"/>`).join('')}</x:root>`
+          : '<x:root xmlns:x="http://example.com/ns"/>';
+        await writeFile(destination, content, 'utf8');
+      },
+    };
+    class LimitedRetriever extends CommonXmlRetriever {
+      protected override maxConcurrentDownloads(): number {
+        return 2;
+      }
+    }
+    const retriever = new LimitedRetriever(localPath, fakeDownloader);
+
+    await retriever.retrieve('http://example.org/entry.xml');
+
+    expect(maxActive).toBe(2);
+    expect(Object.keys(retriever.retrieveHistory())).toHaveLength(5);
+  });
 });

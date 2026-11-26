@@ -1,4 +1,4 @@
-import type { Document } from '@nodecfdi/cfdi-core';
+import type { Document, Element } from '@nodecfdi/cfdi-core';
 import type { DownloaderInterface, RetrieverInterface, SearchElement } from './types.js';
 import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { getParser, getSerializer, MIME_TYPE } from '@nodecfdi/cfdi-core';
@@ -9,10 +9,13 @@ import { stripUtf8Bom, validateDownloadedXmlFile } from './utils/xml_validation_
 
 const DEFAULT_MAX_DEPTH = 50;
 const DEFAULT_MAX_RESOURCES = 500;
+const DEFAULT_MAX_CONCURRENT_DOWNLOADS = 6;
 
-export abstract class AbstractXmlRetriever
-  extends AbstractBaseRetriever
-  implements RetrieverInterface {
+export abstract class AbstractXmlRetriever extends AbstractBaseRetriever implements RetrieverInterface {
+  private _activeDownloads = 0;
+
+  private readonly _downloadQueue: (() => void)[] = [];
+
   public constructor(basePath: string, downloader?: DownloaderInterface) {
     super(basePath, downloader);
   }
@@ -46,6 +49,13 @@ export abstract class AbstractXmlRetriever
   }
 
   /**
+   * Maximum number of simultaneous downloads in a single retrieve operation
+   */
+  protected maxConcurrentDownloads(): number {
+    return DEFAULT_MAX_CONCURRENT_DOWNLOADS;
+  }
+
+  /**
    * Must return a string with the namespace to search for
    */
   protected abstract searchNamespace(): string;
@@ -57,6 +67,22 @@ export abstract class AbstractXmlRetriever
    * "attribute" is the attribute name that contains the url
    */
   protected abstract searchElements(): (SearchElement | Record<string, string>)[];
+
+  private async limitedDownload(url: string): Promise<string> {
+    while (this._activeDownloads >= Math.max(1, this.maxConcurrentDownloads())) {
+      await new Promise<void>((resolve) => {
+        this._downloadQueue.push(resolve);
+      });
+    }
+
+    this._activeDownloads += 1;
+    try {
+      return await this.download(url);
+    } finally {
+      this._activeDownloads -= 1;
+      this._downloadQueue.shift()?.();
+    }
+  }
 
   private async doRetrieve(resource: string, depth = 0): Promise<string> {
     const maxDepth = this.maxDepth();
@@ -71,7 +97,9 @@ export abstract class AbstractXmlRetriever
       );
     }
 
-    const localFileName = await this.download(resource);
+    // Claim before any await: siblings run concurrently, so cycles and the resource limit rely on it
+    this.addToHistory(resource, this.buildPath(resource));
+    const localFileName = await this.limitedDownload(resource);
     const fileContent = stripUtf8Bom(await readFile(localFileName, 'utf8'));
 
     let documentParse: Document;
@@ -88,26 +116,41 @@ export abstract class AbstractXmlRetriever
       throw new Error(`The source ${resource} contains errors: ${message}`, { cause: error });
     }
 
-    this.addToHistory(resource, localFileName);
+    const namespace = this.searchNamespace();
+    const links: { element: Element; attribute: string; location: string }[] = [];
+    for (const { element: tagName, attribute } of this.searchElements()) {
+      if (!tagName || !attribute) {
+        continue;
+      }
+
+      for (const element of documentParse.getElementsByTagNameNS(namespace, tagName)) {
+        const rawLocation = element.getAttribute(attribute)?.trim();
+        if (rawLocation) {
+          links.push({ element, attribute, location: relativeToAbsoluteUrl(rawLocation, resource) });
+        }
+      }
+    }
+
+    // allSettled: wait for every sibling so no download keeps running after a rejection
+    const results = await Promise.allSettled(
+      links.map(async ({ location }) =>
+        this.getFromHistory(location) ?? this.doRetrieve(location, depth + 1),
+      ),
+    );
 
     let changed = false;
-    for (const search of this.searchElements()) {
-      if (!search.element || !search.attribute) {
+    for (const [index, result] of results.entries()) {
+      if (result.status === 'rejected') {
+        throw result.reason;
+      }
+
+      const { element, attribute } = links[index];
+      const relative = relativePath(localFileName, result.value);
+      if (element.getAttribute(attribute) === relative) {
         continue;
       }
 
-      const recursiveRetrieve = await this.recursiveRetrieve(
-        documentParse,
-        search.element,
-        search.attribute,
-        resource,
-        localFileName,
-        depth + 1,
-      );
-      if (!recursiveRetrieve) {
-        continue;
-      }
-
+      element.setAttribute(attribute, relative);
       changed = true;
     }
 
@@ -117,38 +160,5 @@ export abstract class AbstractXmlRetriever
     }
 
     return localFileName;
-  }
-
-  private async recursiveRetrieve(
-    document: Document,
-    tagName: string,
-    attributeName: string,
-    currentUrl: string,
-    currentFile: string,
-    depth: number,
-  ): Promise<boolean> {
-    let modified = false;
-    const elements = document.getElementsByTagNameNS(this.searchNamespace(), tagName);
-    for (const element of elements) {
-      const rawLocation = element.getAttribute(attributeName)?.trim();
-      if (!rawLocation) {
-        continue;
-      }
-
-      const location = relativeToAbsoluteUrl(rawLocation, currentUrl);
-      const downloadChild = this.hasInHistory(location)
-        ? this.getFromHistory(location)!
-        : await this.doRetrieve(location, depth);
-
-      const relative = relativePath(currentFile, downloadChild);
-      if (element.getAttribute(attributeName) === relative) {
-        continue;
-      }
-
-      element.setAttribute(attributeName, relative);
-      modified = true;
-    }
-
-    return modified;
   }
 }
