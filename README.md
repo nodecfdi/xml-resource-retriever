@@ -12,22 +12,24 @@
 [![Violations][badge-violations]][violations]
 [![Total Downloads][badge-downloads]][downloads]
 
-> XSD and XLST resource downloader for local storage
+:us: The documentation of this project is in spanish as this is the natural language for intended audience.
 
-## About of `@nodecfdi/xml-resource-retriever`
+:mexico: La documentación del proyecto está en español porque ese es el lenguaje principal de los usuarios.
 
-The purpose of this library is to download recursively XML resources from the internet to a local storage for further
-usage. At this moment it only allows Schemas (XSL) and Transformations (XSLT) but is easily extensible implementing
-the `RetrieverInterface` interface or extending the `AbstractXmlRetriever` class.
+## Acerca de `@nodecfdi/xml-resource-retriever`
 
-For every downloaded file it will override its dependence's to a relative location, in this way, every dependence should
-be available to work offline.
+El propósito de esta librería es descargar recursivamente recursos XML desde internet a un almacenamiento local para su
+uso posterior. Por el momento solo permite Esquemas (XSL) y Transformaciones (XSLT), pero es fácilmente extensible
+implementando la interfaz `RetrieverInterface` o extendiendo la clase `AbstractXmlRetriever`.
 
-You can use the local object `NodeDownloader` that simply uses copy function to get and store a file from internet. You
-can also use your own implementation of the DownloaderInterface according to your needs. If you built a configurable and
-useful downloader class feel free to contribute it to this project.
+Para cada archivo descargado sobrescribirá sus dependencias a una ubicación relativa; de esta manera, cada dependencia
+estará disponible para trabajar sin conexión.
 
-Based on php version repo: https://github.com/eclipxe13/XmlResourceRetriever
+Puedes usar el objeto local `NodeDownloader` que simplemente utiliza la función de copia para obtener y almacenar un
+archivo desde internet. También puedes usar tu propia implementación de `DownloaderInterface` según tus necesidades.
+Si creaste una clase descargadora configurable y útil, siéntete libre de contribuir con ella a este proyecto.
+
+Basado en el repositorio de la versión PHP: https://github.com/eclipxe13/XmlResourceRetriever
 
 ## Documentación
 
@@ -48,9 +50,9 @@ También utilizamos [Versionado Semántico 2.0.0](https://semver.org/lang/es/) p
 
 Las contribuciones con bienvenidas. Por favor lee [CONTRIBUTING][] para más detalles y recuerda revisar el archivo [CHANGELOG][].
 
-## Copyright and License
+## Copyright y Licencia
 
-The `@nodecfdi/xml-resource-retriever` library is copyright © [NodeCfdi](https://github.com/nodecfdi) and licensed for use under the MIT License (MIT). Please see [LICENSE][] for more information.
+La librería `@nodecfdi/xml-resource-retriever` tiene derechos de autor ©[NodeCfdi](https://github.com/nodecfdi) y está licenciada para su uso bajo la licencia (MIT). Por favor, consulta [LICENSE][] para más información.
 
 [contributing]: https://github.com/nodecfdi/.github/blob/main/docs/CONTRIBUTING.md
 [changelog]: https://github.com/nodecfdi/xml-resource-retriever/blob/main/CHANGELOG.md
