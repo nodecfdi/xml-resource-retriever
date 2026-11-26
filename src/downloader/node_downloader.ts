@@ -1,63 +1,45 @@
 import type { DownloaderInterface } from '../types.js';
-import { createWriteStream, unlinkSync } from 'node:fs';
-import http from 'node:http';
-import https from 'node:https';
-import { URL } from 'node:url';
+import { createWriteStream } from 'node:fs';
+import { unlink, writeFile } from 'node:fs/promises';
+import { pipeline } from 'node:stream/promises';
 
 export default class NodeDownloader implements DownloaderInterface {
+  private readonly _options?: RequestInit;
+
+  public constructor(options?: RequestInit) {
+    this._options = options;
+  }
+
   public async downloadTo(source: string, destination: string): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      const writeStream = createWriteStream(destination);
-      const sendRequest = this.adapterFor(source).get(source);
-
-      sendRequest.on('response', (response) => {
-        if (response.statusCode === 200) {
-          response.pipe(writeStream);
-        } else {
-          writeStream.close();
-          reject(
-            this.handleError(
-              response.statusMessage,
-              `Unable to download ${source} to ${destination}`,
-              destination,
-            ),
-          );
-        }
-      });
-
-      writeStream.on('finish', () => {
-        writeStream.close();
-
-        resolve();
-      });
-
-      sendRequest.on('error', (error) => {
-        reject(
-          this.handleError(error, `Unable to download ${source} to ${destination}`, destination),
-        );
-      });
-
-      writeStream.on('error', (error) => {
-        reject(
-          this.handleError(error, `Unable to download ${source} to ${destination}`, destination),
-        );
-      });
-    });
-  }
-
-  protected adapterFor(inputUrl: string): typeof http | typeof https {
-    const adapter: Record<string, typeof http | typeof https> = {
-      'http:': http,
-      'https:': https,
-    };
-    const targetUrl = new URL(inputUrl);
-
-    return adapter[targetUrl.protocol];
-  }
-
-  private handleError(error: unknown, message: string, destination: string): AggregateError {
     try {
-      unlinkSync(destination);
+      const response = await fetch(source, this._options);
+
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new Error(response.statusText || `HTTP ${response.status}`);
+      }
+
+      if (response.body) {
+        await pipeline(response.body, createWriteStream(destination));
+      } else {
+        await writeFile(destination, '');
+      }
+    } catch (error) {
+      throw await this.handleError(
+        error,
+        `Unable to download ${source} to ${destination}`,
+        destination,
+      );
+    }
+  }
+
+  private async handleError(
+    error: unknown,
+    message: string,
+    destination: string,
+  ): Promise<AggregateError> {
+    try {
+      await unlink(destination);
     } catch {
       //
     }
