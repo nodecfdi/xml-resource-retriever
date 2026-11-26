@@ -316,4 +316,87 @@ describe('node downloader', () => {
     expect(fileContent(destination)).toBe('<existing/>');
     expect(readdirSync(dir)).toStrictEqual(['existing.xsd']);
   });
+
+  test('forwards RequestInit headers without signal when timeoutMs is 0', async () => {
+    const dir = buildPath('node_downloader_headers_no_signal');
+    pathToClear(dir);
+    mkdirSync(dir, { recursive: true });
+
+    const source = 'http://localhost:8999/xsd/simple.xsd';
+    const destination = path.join(dir, 'simple.xsd');
+    const options = {
+      timeoutMs: 0,
+      headers: { 'X-Custom-Header': 'nodecfdi' },
+    };
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const downloader = new NodeDownloader(options);
+
+    await downloader.downloadTo(source, destination);
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    const [, calledInit] = fetchSpy.mock.calls[0];
+    expect(calledInit?.headers).toStrictEqual(options.headers);
+    expect(calledInit?.signal).toBeUndefined();
+    expect(existsSync(destination)).toBe(true);
+  });
+
+  test('falls back to HTTP status code when response statusText is empty', async () => {
+    const dir = buildPath('node_downloader_empty_status_text');
+    pathToClear(dir);
+    mkdirSync(dir, { recursive: true });
+
+    const source = 'http://localhost:8999/xsd/simple.xsd';
+    const destination = path.join(dir, 'error.xsd');
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('error', { status: 503, statusText: '' }),
+    );
+
+    const downloader = new NodeDownloader();
+    const download = downloader.downloadTo(source, destination);
+
+    await expect(download).rejects.toBeInstanceOf(AggregateError);
+    await expect(download).rejects.toMatchObject({
+      errors: [expect.objectContaining({ message: 'HTTP 503' })],
+    });
+    expect(existsSync(destination)).toBe(false);
+  });
+
+  test.each([['5'], ['invalid']])(
+    'allows responses with Content-Length %s within maxBytes or non-numeric',
+    async (headerValue: string) => {
+      const dir = buildPath('node_downloader_valid_content_length');
+      pathToClear(dir);
+      mkdirSync(dir, { recursive: true });
+
+      const source = 'http://localhost:8999/xsd/simple.xsd';
+      const destination = path.join(dir, 'valid.xsd');
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response('hello', {
+          status: 200,
+          headers: { 'content-length': headerValue },
+        }),
+      );
+
+      const downloader = new NodeDownloader({ maxBytes: 100 });
+      await downloader.downloadTo(source, destination);
+
+      expect(fileContent(destination)).toBe('hello');
+    },
+  );
+
+  test('maxBytes 0 with default timeout signal downloads successfully', async () => {
+    const dir = buildPath('node_downloader_no_limit_with_signal');
+    pathToClear(dir);
+    mkdirSync(dir, { recursive: true });
+
+    const source = 'http://localhost:8999/xsd/simple.xsd';
+    const destination = path.join(dir, 'simple.xsd');
+    const downloader = new NodeDownloader({ maxBytes: 0 });
+
+    await downloader.downloadTo(source, destination);
+
+    expect(existsSync(destination)).toBe(true);
+    expect(fileContent(destination)).toBe(fileContent(publicPath('xsd/simple.xsd')));
+  });
 });

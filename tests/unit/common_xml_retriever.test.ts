@@ -1,8 +1,10 @@
-import type { DownloaderInterface } from '../../src/types.js';
+import type { Document } from '@nodecfdi/cfdi-core';
+import type { DownloaderInterface, SearchElement, UrlParts } from '../../src/types.js';
 import { existsSync, readdirSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { describe, expect, test } from 'vitest';
+import { getParser } from '@nodecfdi/cfdi-core';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 import { AbstractBaseRetriever } from '../../src/abstract_base_retriever.js';
 import { NodeDownloader } from '../../src/downloader/node_downloader.js';
 import { CommonXmlRetriever } from '../../test_helpers/common_xml_retriever.js';
@@ -11,6 +13,10 @@ import { useRetriever } from '../../test_helpers/use_retriever.js';
 
 describe('common xml retriever', () => {
   const { pathToClear } = useRetriever();
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   test('construct minimal', () => {
     const retriever = new CommonXmlRetriever('foo');
@@ -419,5 +425,136 @@ describe('common xml retriever', () => {
 
     expect(maxActive).toBe(2);
     expect(Object.keys(retriever.retrieveHistory())).toHaveLength(5);
+  });
+
+  test('setDownloader replaces the active downloader', async () => {
+    const localPath = buildPath('set_downloader');
+    pathToClear(localPath);
+    const remote = 'http://example.org/custom.xml';
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (_source, destination) => {
+        await writeFile(destination, '<x:root xmlns:x="http://example.com/ns"/>', 'utf8');
+      },
+    };
+    const retriever = new CommonXmlRetriever(localPath);
+    retriever.setDownloader(fakeDownloader);
+
+    expect(retriever.getDownloader()).toBe(fakeDownloader);
+
+    const downloaded = await retriever.download(remote);
+    expect(existsSync(downloaded)).toBe(true);
+  });
+
+  test('hasInHistory and urlParts expose protected base retriever helpers', async () => {
+    const localPath = buildPath('protected_helpers');
+    pathToClear(localPath);
+    const entryUrl = 'http://example.org/entry.xml';
+
+    class InspectableRetriever extends CommonXmlRetriever {
+      public checkHasInHistory(source: string): boolean {
+        return this.hasInHistory(source);
+      }
+
+      public getUrlParts(url: string): UrlParts | undefined {
+        return this.urlParts(url);
+      }
+    }
+
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (_source, destination) => {
+        await writeFile(destination, '<x:root xmlns:x="http://example.com/ns"/>', 'utf8');
+      },
+    };
+    const retriever = new InspectableRetriever(localPath, fakeDownloader);
+
+    expect(retriever.checkHasInHistory(entryUrl)).toBe(false);
+    await retriever.retrieve(entryUrl);
+    expect(retriever.checkHasInHistory(entryUrl)).toBe(true);
+
+    expect(retriever.getUrlParts('http://example.org:8080/a/b.xml')).toStrictEqual({
+      scheme: 'http:',
+      host: 'example.org:8080',
+      port: '8080',
+      path: '/a/b.xml',
+    });
+    expect(retriever.getUrlParts('not-a-url')).toBeUndefined();
+  });
+
+  test('retrieve throws when parsed xml has no documentElement and removes file', async () => {
+    const localPath = buildPath('empty_document_element');
+    pathToClear(localPath);
+    const entryUrl = 'http://example.org/empty-doc.xml';
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (_source, destination) => {
+        await writeFile(destination, '<x:root xmlns:x="http://example.com/ns"/>', 'utf8');
+      },
+    };
+    const parserProto = Object.getPrototypeOf(getParser()) as { parseFromString: () => Document };
+    vi.spyOn(parserProto, 'parseFromString').mockReturnValue({
+      documentElement: null,
+    } as unknown as Document);
+
+    const retriever = new CommonXmlRetriever(localPath, fakeDownloader);
+
+    await expect(retriever.retrieve(entryUrl)).rejects.toThrow(
+      `The source ${entryUrl} contains errors: Empty XML document`,
+    );
+    expect(existsSync(retriever.buildPath(entryUrl))).toBe(false);
+  });
+
+  test('retrieve formats non-Error parser throws and removes file', async () => {
+    const localPath = buildPath('non_error_throw');
+    pathToClear(localPath);
+    const entryUrl = 'http://example.org/raw-throw.xml';
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (_source, destination) => {
+        await writeFile(destination, '<x:root xmlns:x="http://example.com/ns"/>', 'utf8');
+      },
+    };
+    const parserProto = Object.getPrototypeOf(getParser()) as { parseFromString: () => Document };
+    vi.spyOn(parserProto, 'parseFromString').mockImplementation(() => {
+      throw 'raw parser failure' as unknown as Error;
+    });
+
+    const retriever = new CommonXmlRetriever(localPath, fakeDownloader);
+
+    await expect(retriever.retrieve(entryUrl)).rejects.toThrow(
+      `The source ${entryUrl} contains errors: raw parser failure`,
+    );
+    expect(existsSync(retriever.buildPath(entryUrl))).toBe(false);
+  });
+
+  test('retrieve skips incomplete searchElements entries', async () => {
+    const localPath = buildPath('incomplete_search_elements');
+    pathToClear(localPath);
+    const files: Record<string, string> = {
+      'http://example.org/entry.xml':
+        '<x:root xmlns:x="http://example.com/ns"><x:resource href="child.xml"/></x:root>',
+      'http://example.org/child.xml': '<x:root xmlns:x="http://example.com/ns"/>',
+    };
+
+    class IncompleteSearchRetriever extends CommonXmlRetriever {
+      protected override searchElements(): SearchElement[] {
+        return [
+          { element: '', attribute: 'href' },
+          { element: 'resource', attribute: '' },
+          { element: 'resource', attribute: 'href' },
+        ];
+      }
+    }
+
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (source, destination) => {
+        await writeFile(destination, files[source], 'utf8');
+      },
+    };
+    const retriever = new IncompleteSearchRetriever(localPath, fakeDownloader);
+
+    await retriever.retrieve('http://example.org/entry.xml');
+
+    expect(Object.keys(retriever.retrieveHistory())).toStrictEqual([
+      'http://example.org/entry.xml',
+      'http://example.org/child.xml',
+    ]);
   });
 });
