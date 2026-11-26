@@ -1,33 +1,51 @@
+const pushParentSegment = (stack: string[]): void => {
+  if (stack.length === 1 && stack[0] === '') {
+    return;
+  }
+
+  if (stack.length > 0 && stack.at(-1) !== '..') {
+    stack.pop();
+
+    return;
+  }
+
+  stack.push('..');
+};
+
+const appendPathSegment = (
+  stack: string[],
+  segment: string,
+  index: number,
+  lastIndex: number,
+): void => {
+  if (segment === '.') {
+    return;
+  }
+
+  if (segment === '') {
+    if (index === 0 || (index === lastIndex && stack.length > 0)) {
+      stack.push('');
+    }
+
+    return;
+  }
+
+  if (segment === '..') {
+    pushParentSegment(stack);
+
+    return;
+  }
+
+  stack.push(segment);
+};
+
 export const simplifyPath = (inputPath: string): string[] => {
   const rawParts = inputPath.split('/');
+  const lastIndex = rawParts.length - 1;
   const stack: string[] = [];
 
   for (const [index, segment] of rawParts.entries()) {
-    if (segment === '.') {
-      continue;
-    }
-
-    if (segment === '') {
-      if (index === 0 || (index === rawParts.length - 1 && stack.length > 0)) {
-        stack.push('');
-      }
-      continue;
-    }
-
-    if (segment === '..') {
-      if (stack.length === 1 && stack[0] === '') {
-        continue;
-      }
-
-      if (stack.length > 0 && stack.at(-1) !== '..') {
-        stack.pop();
-      } else {
-        stack.push('..');
-      }
-      continue;
-    }
-
-    stack.push(segment);
+    appendPathSegment(stack, segment, index, lastIndex);
   }
 
   return stack.length === 0 ? [''] : stack;

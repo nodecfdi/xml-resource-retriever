@@ -68,20 +68,94 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
    */
   protected abstract searchElements(): (SearchElement | Record<string, string>)[];
 
-  private async limitedDownload(url: string): Promise<string> {
-    while (this._activeDownloads >= Math.max(1, this.maxConcurrentDownloads())) {
-      await new Promise<void>((resolve) => {
-        this._downloadQueue.push(resolve);
-      });
+  private async acquireDownloadSlot(): Promise<void> {
+    if (this._activeDownloads < Math.max(1, this.maxConcurrentDownloads())) {
+      this._activeDownloads += 1;
+
+      return;
     }
 
-    this._activeDownloads += 1;
+    await new Promise<void>((resolve) => {
+      this._downloadQueue.push(resolve);
+    });
+
+    await this.acquireDownloadSlot();
+  }
+
+  private async limitedDownload(url: string): Promise<string> {
+    await this.acquireDownloadSlot();
     try {
       return await this.download(url);
     } finally {
       this._activeDownloads -= 1;
       this._downloadQueue.shift()?.();
     }
+  }
+
+  private async readAndParseDocument(resource: string, localFileName: string): Promise<Document> {
+    const fileContent = stripUtf8Bom(await readFile(localFileName, 'utf8'));
+
+    try {
+      const parsed = getParser().parseFromString(fileContent, MIME_TYPE.XML_TEXT);
+      if (!parsed.documentElement) {
+        throw new Error('Empty XML document');
+      }
+
+      return parsed;
+    } catch (error) {
+      await unlink(localFileName);
+      const message = error instanceof Error ? error.message : String(error);
+
+      throw new Error(`The source ${resource} contains errors: ${message}`, { cause: error });
+    }
+  }
+
+  private collectResourceLinks(
+    documentParse: Document,
+    resource: string,
+  ): { element: Element; attribute: string; location: string }[] {
+    const namespace = this.searchNamespace();
+    const links: { element: Element; attribute: string; location: string }[] = [];
+
+    for (const { element: tagName, attribute } of this.searchElements()) {
+      if (!tagName || !attribute) {
+        continue;
+      }
+
+      for (const element of documentParse.getElementsByTagNameNS(namespace, tagName)) {
+        const rawLocation = element.getAttribute(attribute)?.trim();
+        if (rawLocation) {
+          links.push({ element, attribute, location: relativeToAbsoluteUrl(rawLocation, resource) });
+        }
+      }
+    }
+
+    return links;
+  }
+
+  private applyRelativeLinks(
+    localFileName: string,
+    links: { element: Element; attribute: string; location: string }[],
+    results: PromiseSettledResult<string>[],
+  ): boolean {
+    let changed = false;
+
+    for (const [index, result] of results.entries()) {
+      if (result.status === 'rejected') {
+        throw result.reason;
+      }
+
+      const { element, attribute } = links[index];
+      const relative = relativePath(localFileName, result.value);
+      if (element.getAttribute(attribute) === relative) {
+        continue;
+      }
+
+      element.setAttribute(attribute, relative);
+      changed = true;
+    }
+
+    return changed;
   }
 
   private async doRetrieve(resource: string, depth = 0): Promise<string> {
@@ -100,36 +174,8 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
     // Claim before any await: siblings run concurrently, so cycles and the resource limit rely on it
     this.addToHistory(resource, this.buildPath(resource));
     const localFileName = await this.limitedDownload(resource);
-    const fileContent = stripUtf8Bom(await readFile(localFileName, 'utf8'));
-
-    let documentParse: Document;
-    try {
-      const parsed = getParser().parseFromString(fileContent, MIME_TYPE.XML_TEXT);
-      if (!parsed.documentElement) {
-        throw new Error('Empty XML document');
-      }
-      documentParse = parsed;
-    } catch (error) {
-      await unlink(localFileName);
-      const message = error instanceof Error ? error.message : String(error);
-
-      throw new Error(`The source ${resource} contains errors: ${message}`, { cause: error });
-    }
-
-    const namespace = this.searchNamespace();
-    const links: { element: Element; attribute: string; location: string }[] = [];
-    for (const { element: tagName, attribute } of this.searchElements()) {
-      if (!tagName || !attribute) {
-        continue;
-      }
-
-      for (const element of documentParse.getElementsByTagNameNS(namespace, tagName)) {
-        const rawLocation = element.getAttribute(attribute)?.trim();
-        if (rawLocation) {
-          links.push({ element, attribute, location: relativeToAbsoluteUrl(rawLocation, resource) });
-        }
-      }
-    }
+    const documentParse = await this.readAndParseDocument(resource, localFileName);
+    const links = this.collectResourceLinks(documentParse, resource);
 
     // allSettled: wait for every sibling so no download keeps running after a rejection
     const results = await Promise.allSettled(
@@ -138,23 +184,7 @@ export abstract class AbstractXmlRetriever extends AbstractBaseRetriever impleme
       ),
     );
 
-    let changed = false;
-    for (const [index, result] of results.entries()) {
-      if (result.status === 'rejected') {
-        throw result.reason;
-      }
-
-      const { element, attribute } = links[index];
-      const relative = relativePath(localFileName, result.value);
-      if (element.getAttribute(attribute) === relative) {
-        continue;
-      }
-
-      element.setAttribute(attribute, relative);
-      changed = true;
-    }
-
-    if (changed) {
+    if (this.applyRelativeLinks(localFileName, links, results)) {
       const changedXml = getSerializer().serializeToString(documentParse);
       await writeFile(localFileName, changedXml, 'utf8');
     }

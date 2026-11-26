@@ -34,13 +34,22 @@ export const parseHttpUrlParts = (url: string): UrlParts | undefined => {
   }
 };
 
+const trimTrailingSlashes = (value: string): string => {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === '/') {
+    end -= 1;
+  }
+
+  return end === value.length ? value : value.slice(0, end);
+};
+
 export const resolveLocalFilePath = (basePath: string, url: string): string => {
   const parts = parseHttpUrlParts(url);
   if (!parts) {
     throw new Error(`Invalid URL: ${url}`);
   }
 
-  const normalizedBase = basePath === '/' ? '' : basePath.replace(/\/+$/, '');
+  const normalizedBase = trimTrailingSlashes(basePath);
   const localPath = `${normalizedBase}/${parts.host}${parts.path}`;
 
   const resolvedBase = path.resolve(basePath);
