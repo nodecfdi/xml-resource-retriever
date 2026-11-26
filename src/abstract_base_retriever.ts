@@ -1,18 +1,18 @@
-import type { DownloaderInterface, RetrieverInterface } from './types.js';
-import { existsSync } from 'node:fs';
+import type { DownloaderInterface, RetrieverInterface, UrlParts } from './types.js';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
-import NodeDownloader from './downloader/node_downloader.js';
+import { NodeDownloader } from './downloader/node_downloader.js';
+import { parseHttpUrlParts, resolveLocalFilePath } from './utils/url_utils.js';
 
-export default abstract class AbstractBaseRetriever implements RetrieverInterface {
+export abstract class AbstractBaseRetriever implements RetrieverInterface {
   private readonly _basePath: string;
 
-  private declare _downloader: DownloaderInterface;
+  private _downloader: DownloaderInterface;
 
   /**
-   * This variable stores the list of retrieved resources to avoid infinite recursion
+   * This map stores the list of retrieved resources to avoid infinite recursion
    */
-  private _history: Record<string, string> = {};
+  private readonly _history = new Map<string, string>();
 
   /**
    * Retriever constructor
@@ -22,7 +22,7 @@ export default abstract class AbstractBaseRetriever implements RetrieverInterfac
    */
   protected constructor(basePath: string, downloader?: DownloaderInterface) {
     this._basePath = basePath;
-    this.setDownloader(downloader ?? new NodeDownloader());
+    this._downloader = downloader ?? new NodeDownloader();
   }
 
   public getBasePath(): string {
@@ -38,12 +38,7 @@ export default abstract class AbstractBaseRetriever implements RetrieverInterfac
   }
 
   public buildPath(url: string): string {
-    const parts = this.urlParts(url);
-    if (!parts) {
-      throw new Error(`Invalid URL: ${url}`);
-    }
-
-    return `${this._basePath}/${parts.host}${parts.path}`;
+    return resolveLocalFilePath(this._basePath, url);
   }
 
   public async download(url: string): Promise<string> {
@@ -51,64 +46,58 @@ export default abstract class AbstractBaseRetriever implements RetrieverInterfac
       throw new Error('The argument to download is empty');
     }
 
-    // Set destination
     const localPath = this.buildPath(url);
-
-    // Create local path
-    const directory = path.dirname(localPath);
-    if (!existsSync(directory)) {
-      try {
-        await mkdir(directory, { recursive: true });
-      } catch {
-        throw new Error(`Unable to create directory ${directory}`);
-      }
+    if (localPath.endsWith('/')) {
+      throw new Error(`Invalid URL: ${url}`);
     }
 
-    // Download the file into its final destination
-    await this._downloader.downloadTo(url, localPath);
+    const directory = path.dirname(localPath);
+    try {
+      await mkdir(directory, { recursive: true });
+    } catch (error) {
+      throw new Error(`Unable to create directory ${directory}`, { cause: error });
+    }
 
-    // Check content is valid
+    await this._downloader.downloadTo(url, localPath);
     await this.checkIsValidDownloadedFile(url, localPath);
 
     return localPath;
   }
 
   public retrieveHistory(): Record<string, string> {
-    return this._history;
+    return Object.fromEntries(this._history);
   }
 
   public abstract retrieve(url: string): Promise<string>;
 
   protected clearHistory(): void {
-    this._history = {};
+    this._history.clear();
   }
 
   protected addToHistory(source: string, localPath: string): void {
-    this._history[source] = localPath;
+    this._history.set(source, localPath);
+  }
+
+  protected hasInHistory(source: string): boolean {
+    return this._history.has(source);
+  }
+
+  protected getFromHistory(source: string): string | undefined {
+    return this._history.get(source);
+  }
+
+  protected historySize(): number {
+    return this._history.size;
   }
 
   /**
    * Retrieve url parts
-   * If url is malformed return false
+   * If url is malformed return undefined
    *
    * @param url - string url
    */
-  protected urlParts(url: string): Record<string, string> | undefined {
-    try {
-      const parsed = new URL(url);
-      if (!['https:', 'http:'].includes(parsed.protocol)) {
-        return undefined;
-      }
-
-      return {
-        scheme: parsed.protocol,
-        host: parsed.host,
-        port: parsed.port,
-        path: parsed.pathname,
-      };
-    } catch {
-      return undefined;
-    }
+  protected urlParts(url: string): UrlParts | undefined {
+    return parseHttpUrlParts(url);
   }
 
   protected abstract checkIsValidDownloadedFile(source: string, localPath: string): Promise<void>;

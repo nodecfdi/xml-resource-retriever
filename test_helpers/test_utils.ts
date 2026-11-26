@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,7 +22,7 @@ export const filePath = (file: string): string =>
   path.join(getDirname(import.meta.url), '_files', file);
 
 export const buildPath = (file: string): string =>
-  path.join(getDirname(import.meta.url), '_build', `${file}_${Date.now().toString()}`);
+  path.join(getDirname(import.meta.url), '_build', `${file}_${randomUUID()}`);
 
 export const rawBuildPath = (file: string): string =>
   path.join(getDirname(import.meta.url), '_build', file);

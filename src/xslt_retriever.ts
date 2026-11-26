@@ -1,7 +1,8 @@
-import AbstractXmlRetriever from './abstract_xml_retriever.js';
+import type { SearchElement } from './types.js';
+import { AbstractXmlRetriever } from './abstract_xml_retriever.js';
 
-export default class XsltRetriever extends AbstractXmlRetriever {
-  protected searchElements(): Record<string, string>[] {
+export class XsltRetriever extends AbstractXmlRetriever {
+  protected searchElements(): SearchElement[] {
     return [
       { element: 'import', attribute: 'href' },
       { element: 'include', attribute: 'href' },

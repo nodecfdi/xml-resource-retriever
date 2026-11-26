@@ -21,7 +21,7 @@ export interface RetrieverInterface {
 
   /**
    * Returns the history of the last retrieve operation
-   * The return is un record of key value pairs where the key is the url retrieved and the value is the path
+   * The return is a record of key-value pairs where the key is the url retrieved and the value is the path
    */
   retrieveHistory: () => Record<string, string>;
 
@@ -36,4 +36,34 @@ export interface RetrieverInterface {
 
 export interface DownloaderInterface {
   downloadTo: (source: string, destination: string) => Promise<void>;
+}
+
+export interface UrlParts {
+  scheme: string;
+  host: string;
+  port: string;
+  path: string;
+}
+
+export interface SearchElement {
+  element: string;
+  attribute: string;
+}
+
+export interface NodeDownloaderOptions extends RequestInit {
+  /**
+   * Maximum time in milliseconds allowed for the request and body download.
+   * Set to `0` to disable the timeout.
+   *
+   * @defaultValue 30_000
+   */
+  timeoutMs?: number;
+
+  /**
+   * Maximum response size in bytes allowed during download.
+   * Set to `0` to disable the size limit.
+   *
+   * @defaultValue 52_428_800 (50 MiB)
+   */
+  maxBytes?: number;
 }

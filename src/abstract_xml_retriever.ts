@@ -1,12 +1,16 @@
 import type { Document } from '@nodecfdi/cfdi-core';
-import type { DownloaderInterface, RetrieverInterface } from './types.js';
-import { existsSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
-import path from 'node:path';
+import type { DownloaderInterface, RetrieverInterface, SearchElement } from './types.js';
+import { readFile, unlink, writeFile } from 'node:fs/promises';
 import { getParser, getSerializer, MIME_TYPE } from '@nodecfdi/cfdi-core';
-import AbstractBaseRetriever from './abstract_base_retriever.js';
-import { relativePath, simplifyPath } from './utils/path_utils.js';
+import { AbstractBaseRetriever } from './abstract_base_retriever.js';
+import { relativePath } from './utils/path_utils.js';
+import { relativeToAbsoluteUrl } from './utils/url_utils.js';
+import { stripUtf8Bom, validateDownloadedXmlFile } from './utils/xml_validation_utils.js';
 
-export default abstract class AbstractXmlRetriever
+const DEFAULT_MAX_DEPTH = 50;
+const DEFAULT_MAX_RESOURCES = 500;
+
+export abstract class AbstractXmlRetriever
   extends AbstractBaseRetriever
   implements RetrieverInterface {
   public constructor(basePath: string, downloader?: DownloaderInterface) {
@@ -24,26 +28,21 @@ export default abstract class AbstractXmlRetriever
    * is a valid resource, if not will remove the file and throw an exception
    */
   protected async checkIsValidDownloadedFile(source: string, localPath: string): Promise<void> {
-    const statsFile = statSync(localPath);
-    if (statsFile.size === 0) {
-      unlinkSync(localPath);
-      throw new Error(`The source ${source} is not an xml file because it is empty`);
-    }
+    await validateDownloadedXmlFile(source, localPath);
+  }
 
-    const { fileTypeFromFile } = await import('file-type');
-    const result = await fileTypeFromFile(localPath);
-    let mimeType: string | undefined = result?.mime;
-    if (!mimeType) {
-      const { default: mime } = await import('mime');
-      mimeType = mime.getType(localPath) ?? undefined;
-    }
+  /**
+   * Maximum recursion depth allowed when following linked XML resources
+   */
+  protected maxDepth(): number {
+    return DEFAULT_MAX_DEPTH;
+  }
 
-    if (mimeType === 'application/xml' || mimeType?.startsWith('text/')) {
-      return;
-    }
-
-    unlinkSync(localPath);
-    throw new Error(`The source ${source} (${result!.mime}) is not an xml file`);
+  /**
+   * Maximum total number of XML resources allowed in a single retrieve operation
+   */
+  protected maxResources(): number {
+    return DEFAULT_MAX_RESOURCES;
   }
 
   /**
@@ -57,43 +56,64 @@ export default abstract class AbstractXmlRetriever
    * "element" is the tag name to search for
    * "attribute" is the attribute name that contains the url
    */
-  protected abstract searchElements(): Record<string, string>[];
+  protected abstract searchElements(): (SearchElement | Record<string, string>)[];
 
-  private async doRetrieve(resource: string): Promise<string> {
+  private async doRetrieve(resource: string, depth = 0): Promise<string> {
+    const maxDepth = this.maxDepth();
+    if (depth > maxDepth) {
+      throw new Error(`Maximum recursion depth (${maxDepth}) exceeded while retrieving ${resource}`);
+    }
+
+    const maxResources = this.maxResources();
+    if (this.historySize() >= maxResources) {
+      throw new Error(
+        `Maximum resource limit (${maxResources}) exceeded while retrieving ${resource}`,
+      );
+    }
+
     const localFileName = await this.download(resource);
-    this.addToHistory(resource, localFileName);
+    const fileContent = stripUtf8Bom(await readFile(localFileName, 'utf8'));
 
-    let fileContent = '';
-    if (existsSync(localFileName)) {
-      fileContent = readFileSync(localFileName, 'utf8').replaceAll(/^\u{FEFF}/gu, '');
-    }
-
-    let documentParse: Document | null = null;
+    let documentParse: Document;
     try {
-      documentParse = getParser().parseFromString(fileContent, MIME_TYPE.XML_TEXT);
+      const parsed = getParser().parseFromString(fileContent, MIME_TYPE.XML_TEXT);
+      if (!parsed.documentElement) {
+        throw new Error('Empty XML document');
+      }
+      documentParse = parsed;
     } catch (error) {
-      unlinkSync(localFileName);
+      await unlink(localFileName);
+      const message = error instanceof Error ? error.message : String(error);
 
-      throw new Error(`The source ${resource} contains errors: ${(error as Error).message}`);
+      throw new Error(`The source ${resource} contains errors: ${message}`, { cause: error });
     }
+
+    this.addToHistory(resource, localFileName);
 
     let changed = false;
     for (const search of this.searchElements()) {
+      if (!search.element || !search.attribute) {
+        continue;
+      }
+
       const recursiveRetrieve = await this.recursiveRetrieve(
         documentParse,
         search.element,
         search.attribute,
         resource,
         localFileName,
+        depth + 1,
       );
-      if (recursiveRetrieve) {
-        changed = true;
+      if (!recursiveRetrieve) {
+        continue;
       }
+
+      changed = true;
     }
 
     if (changed) {
       const changedXml = getSerializer().serializeToString(documentParse);
-      writeFileSync(localFileName, changedXml, 'utf8');
+      await writeFile(localFileName, changedXml, 'utf8');
     }
 
     return localFileName;
@@ -105,45 +125,30 @@ export default abstract class AbstractXmlRetriever
     attributeName: string,
     currentUrl: string,
     currentFile: string,
+    depth: number,
   ): Promise<boolean> {
     let modified = false;
     const elements = document.getElementsByTagNameNS(this.searchNamespace(), tagName);
     for (const element of elements) {
-      if (!element.hasAttribute(attributeName)) {
+      const rawLocation = element.getAttribute(attributeName)?.trim();
+      if (!rawLocation) {
         continue;
       }
 
-      let location = element.getAttribute(attributeName);
-      if (!location || location === '') {
-        continue;
-      }
+      const location = relativeToAbsoluteUrl(rawLocation, currentUrl);
+      const downloadChild = this.hasInHistory(location)
+        ? this.getFromHistory(location)!
+        : await this.doRetrieve(location, depth);
 
-      location = this.relativeToAbsoluteUrl(location, currentUrl);
-      if (Object.keys(this.retrieveHistory()).includes(location)) {
-        continue;
-      }
-
-      const downloadChild = await this.doRetrieve(location);
       const relative = relativePath(currentFile, downloadChild);
+      if (element.getAttribute(attributeName) === relative) {
+        continue;
+      }
+
       element.setAttribute(attributeName, relative);
       modified = true;
     }
 
     return modified;
-  }
-
-  private relativeToAbsoluteUrl(url: string, currentUrl: string): string {
-    if (this.urlParts(url)) {
-      return url;
-    }
-
-    const currentParts = this.urlParts(currentUrl) ?? {};
-
-    return [
-      currentParts.scheme,
-      '//',
-      currentParts.host,
-      simplifyPath(`${path.dirname(currentParts.path)}/${url}`).join('/'),
-    ].join('');
   }
 }

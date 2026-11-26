@@ -13,6 +13,9 @@ describe('path utils', () => {
     ['./a///./../b/c', ['b', 'c']],
     ['x/./././.', ['x']],
     ['../../../x', ['..', '..', '..', 'x']],
+    ['/../../a', ['', 'a']],
+    ['/../a', ['', 'a']],
+    [`a/${'./'.repeat(5000)}b`, ['a', 'b']],
     ['x', ['x']],
     ['', ['']],
     ['.', ['']],
@@ -37,6 +40,8 @@ describe('path utils', () => {
     ['both relative', 'foo/bar/baz', 'root', '../../root'],
     ['absolute to relative', '/foo/bar/baz', 'root', '../../../root'],
     ['relative to absolute', 'foo/bar/baz', '/root', '/root'],
+    ['identical file', '/a/b/foo.xml', '/a/b/foo.xml', 'foo.xml'],
+    ['filename matching directory', '/a/b/c', '/a/b/c/d', 'c/d'],
   ])(
     'expected behaviour %s',
     (_name: string, source: string, destination: string, expected: string) => {

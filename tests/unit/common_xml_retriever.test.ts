@@ -1,12 +1,14 @@
+import type { DownloaderInterface } from '../../src/types.js';
 import { existsSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { globSync } from 'glob';
 import { describe, expect, test } from 'vitest';
-import AbstractBaseRetriever from '../../src/abstract_base_retriever.js';
-import NodeDownloader from '../../src/downloader/node_downloader.js';
-import CommonXmlRetriever from '../../test_helpers/common_xml_retriever.js';
+import { AbstractBaseRetriever } from '../../src/abstract_base_retriever.js';
+import { NodeDownloader } from '../../src/downloader/node_downloader.js';
+import { CommonXmlRetriever } from '../../test_helpers/common_xml_retriever.js';
 import { buildPath, fileContent, getDirname, publicPath } from '../../test_helpers/test_utils.js';
-import useRetriever from '../../test_helpers/use_retriever.js';
+import { useRetriever } from '../../test_helpers/use_retriever.js';
 
 describe('common xml retriever', () => {
   const { pathToClear } = useRetriever();
@@ -94,6 +96,59 @@ describe('common xml retriever', () => {
     expect(existsSync(local)).toBeFalsy();
   }, 30_000);
 
+  test('download non-xml json file without magic bytes reports mime type cleanly', async () => {
+    const localPath = buildPath('json');
+    pathToClear(localPath);
+    const remote = 'http://example.org/data.json';
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (_source, destination) => {
+        await writeFile(destination, '{"ok":true}', 'utf8');
+      },
+    };
+    const retriever = new CommonXmlRetriever(localPath, fakeDownloader);
+
+    await expect(retriever.download(remote)).rejects.toThrow(
+      `The source ${remote} (application/json) is not an xml file`,
+    );
+    expect(existsSync(retriever.buildPath(remote))).toBe(false);
+  });
+
+  test('download unknown extension without magic bytes reports unknown mime type', async () => {
+    const localPath = buildPath('unknown_ext');
+    pathToClear(localPath);
+    const remote = 'http://example.org/resource.unknownext';
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (_source, destination) => {
+        await writeFile(destination, 'plain binary-like content', 'utf8');
+      },
+    };
+    const retriever = new CommonXmlRetriever(localPath, fakeDownloader);
+
+    await expect(retriever.download(remote)).rejects.toThrow(
+      `The source ${remote} (unknown) is not an xml file`,
+    );
+    expect(existsSync(retriever.buildPath(remote))).toBe(false);
+  });
+
+  test('download accepts xslt file without xml declaration header', async () => {
+    const localPath = buildPath('xslt_no_header');
+    pathToClear(localPath);
+    const remote = 'http://example.org/transform.xslt';
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (_source, destination) => {
+        await writeFile(
+          destination,
+          '<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"/>',
+          'utf8',
+        );
+      },
+    };
+    const retriever = new CommonXmlRetriever(localPath, fakeDownloader);
+
+    const downloaded = await retriever.download(remote);
+    expect(existsSync(downloaded)).toBe(true);
+  });
+
   test('download non existent', async () => {
     const localPath = buildPath('non-existent');
     pathToClear(localPath);
@@ -170,19 +225,31 @@ describe('common xml retriever', () => {
     30_000,
   );
 
-  test.each([['scheme://host'], ['host/path'], ['not-an-url']])(
-    'build path with invalid url %s',
-    (url: string) => {
-      const retriever = new CommonXmlRetriever('basepath');
+  test.each([
+    ['scheme://host'],
+    ['host/path'],
+    ['not-an-url'],
+    ['http://localhost:8999/a%00b.xml'],
+    ['http://localhost:8999/a\0b.xml'],
+  ])('build path with invalid url %s', (url: string) => {
+    const retriever = new CommonXmlRetriever('basepath');
 
-      const t = (): string => retriever.buildPath(url);
+    const t = (): string => retriever.buildPath(url);
 
-      expect(t).toThrow(Error);
-      expect(t).toThrow(`Invalid URL: ${url}`);
-    },
-  );
+    expect(t).toThrow(Error);
+    expect(t).toThrow(`Invalid URL: ${url}`);
+  });
 
-  test('retrieve with history', async () => {
+  test('download rejects trailing slash directory url', async () => {
+    const localPath = buildPath('trailing_slash');
+    pathToClear(localPath);
+    const retriever = new CommonXmlRetriever(localPath);
+    const url = 'http://localhost:8999/dir/';
+
+    await expect(retriever.download(url)).rejects.toThrow(`Invalid URL: ${url}`);
+  });
+
+  test('retrieve with history rewrites cyclic references and returns isolated snapshot', async () => {
     const localPath = buildPath('common');
     pathToClear(localPath);
     const remoteParent = 'http://localhost:8999/other/common/parent.xml';
@@ -197,12 +264,127 @@ describe('common xml retriever', () => {
     const history = retriever.retrieveHistory();
     expect(Object.values(history)).toHaveLength(expectedRetrievedFiles.length);
 
+    history['http://mutated.invalid/x.xml'] = '/tmp/mutated.xml';
+    expect(Object.keys(retriever.retrieveHistory())).toHaveLength(expectedRetrievedFiles.length);
+
     const retrievedFiles = globSync(`${expectedDestination}/*.xml`);
     expect(retrievedFiles).toHaveLength(expectedRetrievedFiles.length);
 
     for (const retrievedFile of retrievedFiles) {
-      expect(Object.values(history)).toContain(retrievedFile);
+      expect(Object.values(retriever.retrieveHistory())).toContain(retrievedFile);
       expect(expectedRetrievedFiles).toContain(path.basename(retrievedFile));
     }
+
+    const childContent = fileContent(
+      retriever.buildPath('http://localhost:8999/other/common/child.xml'),
+    );
+    expect(childContent).toContain('href="parent.xml"');
+
+    const selfContent = fileContent(
+      retriever.buildPath('http://localhost:8999/other/common/recursive-self.xml'),
+    );
+    expect(selfContent).toContain('href="recursive-self.xml"');
   }, 30_000);
+
+  test('rejects unsafe scheme referenced inside xml', async () => {
+    const localPath = buildPath('unsafe_ref');
+    pathToClear(localPath);
+    const entryUrl = 'http://example.org/entry.xml';
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (_source, destination) => {
+        await writeFile(
+          destination,
+          '<x:root xmlns:x="http://example.com/ns"><x:resource href="file:///etc/passwd"/></x:root>',
+          'utf8',
+        );
+      },
+    };
+    const retriever = new CommonXmlRetriever(localPath, fakeDownloader);
+
+    await expect(retriever.retrieve(entryUrl)).rejects.toThrow('Invalid URL: file:///etc/passwd');
+  });
+
+  test('resolves root-relative and excessive parent traversal references safely', async () => {
+    const localPath = buildPath('relative_refs');
+    pathToClear(localPath);
+    const files: Record<string, string> = {
+      'http://example.org/a/b/root.xml':
+        '<x:root xmlns:x="http://example.com/ns"><x:resource href="/shared/one.xml"/><x:resource href="../../../../../../other/two.xml"/></x:root>',
+      'http://example.org/shared/one.xml': '<x:root xmlns:x="http://example.com/ns"/>',
+      'http://example.org/other/two.xml': '<x:root xmlns:x="http://example.com/ns"/>',
+    };
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (source, destination) => {
+        const content = files[source];
+        if (!content) {
+          throw new Error(`Unexpected URL: ${source}`);
+        }
+        await writeFile(destination, content, 'utf8');
+      },
+    };
+    const retriever = new CommonXmlRetriever(localPath, fakeDownloader);
+
+    const rootLocal = await retriever.retrieve('http://example.org/a/b/root.xml');
+    const rootContent = fileContent(rootLocal);
+    expect(rootContent).toContain('href="../../shared/one.xml"');
+    expect(rootContent).toContain('href="../../other/two.xml"');
+  });
+
+  test('enforces maximum recursion depth limit', async () => {
+    const localPath = buildPath('max_depth');
+    pathToClear(localPath);
+
+    class ShallowRetriever extends CommonXmlRetriever {
+      protected override maxDepth(): number {
+        return 1;
+      }
+    }
+
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (source, destination) => {
+        const current = Number(/(\d+)\.xml$/.exec(source)?.[1] ?? '0');
+        await writeFile(
+          destination,
+          `<x:root xmlns:x="http://example.com/ns"><x:resource href="n${current + 1}.xml"/></x:root>`,
+          'utf8',
+        );
+      },
+    };
+    const retriever = new ShallowRetriever(localPath, fakeDownloader);
+
+    await expect(retriever.retrieve('http://example.org/n0.xml')).rejects.toThrow(
+      'Maximum recursion depth (1) exceeded',
+    );
+  });
+
+  test('enforces maximum resource limit', async () => {
+    const localPath = buildPath('max_resources');
+    pathToClear(localPath);
+
+    class SmallBudgetRetriever extends CommonXmlRetriever {
+      protected override maxResources(): number {
+        return 2;
+      }
+    }
+
+    const fakeDownloader: DownloaderInterface = {
+      downloadTo: async (source, destination) => {
+        if (source.endsWith('entry.xml')) {
+          await writeFile(
+            destination,
+            '<x:root xmlns:x="http://example.com/ns"><x:resource href="a.xml"/><x:resource href="b.xml"/></x:root>',
+            'utf8',
+          );
+
+          return;
+        }
+        await writeFile(destination, '<x:root xmlns:x="http://example.com/ns"/>', 'utf8');
+      },
+    };
+    const retriever = new SmallBudgetRetriever(localPath, fakeDownloader);
+
+    await expect(retriever.retrieve('http://example.org/entry.xml')).rejects.toThrow(
+      'Maximum resource limit (2) exceeded',
+    );
+  });
 });

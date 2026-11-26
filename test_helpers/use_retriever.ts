@@ -1,20 +1,20 @@
 import { afterEach } from 'vitest';
 import { deleteDirectory, rawBuildPath } from './test_utils.js';
 
-const useRetriever = (): { pathToClear: (path?: string) => string } => {
+export const useRetriever = (): { pathToClear: (path?: string) => string } => {
   let selectedPathToClear = '';
 
-  const pathToClear = (path = ''): string => {
-    if (path === '') {
+  const pathToClear = (targetPath = ''): string => {
+    if (targetPath === '') {
       return selectedPathToClear;
     }
 
-    if (path.indexOf(rawBuildPath(''))) {
+    if (!targetPath.startsWith(rawBuildPath(''))) {
       throw new Error('Unable to set a path to clear that is not in the build path');
     }
 
     const previousPath = selectedPathToClear;
-    selectedPathToClear = path;
+    selectedPathToClear = targetPath;
 
     return previousPath;
   };
@@ -29,5 +29,3 @@ const useRetriever = (): { pathToClear: (path?: string) => string } => {
     pathToClear,
   };
 };
-
-export default useRetriever;

@@ -1,52 +1,58 @@
-export const simplifyPath = (path: string): string[] => {
-  const parts = path.replaceAll('//', '/./').split('/');
-  const count = parts.length;
-  for (let index = 0; index < count; index += 1) {
-    // Is '..' and previous is not '..'
-    if (index > 0 && parts[index] === '..' && parts[index - 1] !== '..') {
-      parts.splice(index - 1, 1);
-      parts.splice(index - 1, 1);
+export const simplifyPath = (inputPath: string): string[] => {
+  const rawParts = inputPath.split('/');
+  const stack: string[] = [];
 
-      return simplifyPath(parts.join('/'));
+  for (const [index, segment] of rawParts.entries()) {
+    if (segment === '.') {
+      continue;
     }
 
-    // Is inner '.'
-    if (parts[index] === '.') {
-      parts.splice(index, 1);
-
-      return simplifyPath(parts.join('/'));
+    if (segment === '') {
+      if (index === 0 || (index === rawParts.length - 1 && stack.length > 0)) {
+        stack.push('');
+      }
+      continue;
     }
+
+    if (segment === '..') {
+      if (stack.length === 1 && stack[0] === '') {
+        continue;
+      }
+
+      if (stack.length > 0 && stack.at(-1) !== '..') {
+        stack.pop();
+      } else {
+        stack.push('..');
+      }
+      continue;
+    }
+
+    stack.push(segment);
   }
 
-  return parts;
+  return stack.length === 0 ? [''] : stack;
 };
 
 export const relativePath = (sourceFile: string, destinationFile: string): string => {
-  let source: (string | undefined)[] = simplifyPath(sourceFile);
-  let destination: (string | undefined)[] = simplifyPath(destinationFile);
+  const source = simplifyPath(sourceFile);
+  const destination = simplifyPath(destinationFile);
+
   if (source[0] !== '' && destination[0] === '') {
     return destination.join('/');
   }
 
-  // Remove the common path
-  for (const [depth, directory] of source.entries()) {
-    if (directory === destination[depth]) {
-      destination[depth] = undefined;
-      source[depth] = undefined;
-    } else {
-      break;
-    }
+  let commonDepth = 0;
+  while (
+    commonDepth < source.length - 1
+    && commonDepth < destination.length - 1
+    && source[commonDepth] === destination[commonDepth]
+  ) {
+    commonDepth += 1;
   }
 
-  // Clear all undefined
-  source = source.filter((s) => s !== undefined);
-  destination = destination.filter((s) => s !== undefined);
+  const upLevels = Math.max(0, source.length - 1 - commonDepth);
 
-  // Add '..' to the beginning of the source as required by the length of from
-  const fromLength = source.length;
-  for (let index = 0; index < fromLength - 1; index += 1) {
-    destination.unshift('..');
-  }
-
-  return destination.join('/');
+  return [...Array.from({ length: upLevels }, () => '..'), ...destination.slice(commonDepth)].join(
+    '/',
+  );
 };

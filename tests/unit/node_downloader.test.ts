@@ -1,9 +1,9 @@
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import NodeDownloader from '../../src/downloader/node_downloader.js';
+import { NodeDownloader } from '../../src/downloader/node_downloader.js';
 import { buildPath, fileContent, publicPath } from '../../test_helpers/test_utils.js';
-import useRetriever from '../../test_helpers/use_retriever.js';
+import { useRetriever } from '../../test_helpers/use_retriever.js';
 
 describe('node downloader', () => {
   const { pathToClear } = useRetriever();
@@ -103,14 +103,14 @@ describe('node downloader', () => {
     expect(existsSync(destination)).toBe(false);
   });
 
-  test('forwards optional RequestInit options to fetch', async () => {
+  test('forwards optional RequestInit options to fetch with default timeout signal', async () => {
     const dir = buildPath('node_downloader_options');
     pathToClear(dir);
     mkdirSync(dir, { recursive: true });
 
     const source = 'http://localhost:8999/xsd/simple.xsd';
     const destination = path.join(dir, 'simple.xsd');
-    const options: RequestInit = {
+    const options = {
       headers: { 'X-Custom-Header': 'nodecfdi' },
     };
 
@@ -120,8 +120,43 @@ describe('node downloader', () => {
     await downloader.downloadTo(source, destination);
 
     expect(fetchSpy).toHaveBeenCalledTimes(1);
-    expect(fetchSpy).toHaveBeenCalledWith(source, options);
+    const [calledUrl, calledInit] = fetchSpy.mock.calls[0];
+    expect(calledUrl).toBe(source);
+    expect(calledInit?.headers).toStrictEqual(options.headers);
+    expect(calledInit?.signal).toBeInstanceOf(AbortSignal);
     expect(existsSync(destination)).toBe(true);
+  });
+
+  test('timeoutMs 0 does not inject an AbortSignal when no user signal is provided', async () => {
+    const dir = buildPath('node_downloader_no_timeout');
+    pathToClear(dir);
+    mkdirSync(dir, { recursive: true });
+
+    const source = 'http://localhost:8999/xsd/simple.xsd';
+    const destination = path.join(dir, 'simple.xsd');
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const downloader = new NodeDownloader({ timeoutMs: 0 });
+
+    await downloader.downloadTo(source, destination);
+
+    expect(fetchSpy).toHaveBeenCalledWith(source, undefined);
+    expect(existsSync(destination)).toBe(true);
+  });
+
+  test('maxBytes 0 disables response size limit', async () => {
+    const dir = buildPath('node_downloader_no_limit');
+    pathToClear(dir);
+    mkdirSync(dir, { recursive: true });
+
+    const source = 'http://localhost:8999/xsd/simple.xsd';
+    const destination = path.join(dir, 'simple.xsd');
+    const downloader = new NodeDownloader({ maxBytes: 0, timeoutMs: 0 });
+
+    await downloader.downloadTo(source, destination);
+
+    expect(existsSync(destination)).toBe(true);
+    expect(fileContent(destination)).toBe(fileContent(publicPath('xsd/simple.xsd')));
   });
 
   test('aborted signal via optional RequestInit rejects with AggregateError', async () => {
@@ -138,5 +173,147 @@ describe('node downloader', () => {
     await expect(download).rejects.toBeInstanceOf(AggregateError);
     await expect(download).rejects.toThrow(`Unable to download ${source} to ${destination}`);
     expect(existsSync(destination)).toBe(false);
+  });
+
+  test.each([
+    ['file protocol', 'file:///etc/passwd'],
+    ['data protocol', 'data:text/plain,hello'],
+  ])('rejects disallowed %s without calling fetch', async (_name, source) => {
+    const dir = buildPath('node_downloader_scheme');
+    pathToClear(dir);
+    mkdirSync(dir, { recursive: true });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const destination = path.join(dir, 'blocked.xml');
+    const downloader = new NodeDownloader();
+
+    const download = downloader.downloadTo(source, destination);
+
+    await expect(download).rejects.toBeInstanceOf(AggregateError);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(existsSync(destination)).toBe(false);
+  });
+
+  test('rejects redirect to disallowed protocol', async () => {
+    const dir = buildPath('node_downloader_redirect');
+    pathToClear(dir);
+    mkdirSync(dir, { recursive: true });
+
+    const source = 'http://localhost:8999/xsd/simple.xsd';
+    const destination = path.join(dir, 'redirected.xsd');
+    const response = new Response('<root/>', { status: 200 });
+    Object.defineProperty(response, 'url', { value: 'file:///etc/passwd' });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(response);
+
+    const downloader = new NodeDownloader();
+    const download = downloader.downloadTo(source, destination);
+
+    await expect(download).rejects.toBeInstanceOf(AggregateError);
+    expect(existsSync(destination)).toBe(false);
+  });
+
+  test('rejects response exceeding maxBytes via Content-Length header', async () => {
+    const dir = buildPath('node_downloader_content_length');
+    pathToClear(dir);
+    mkdirSync(dir, { recursive: true });
+
+    const source = 'http://localhost:8999/xsd/simple.xsd';
+    const destination = path.join(dir, 'too-large.xsd');
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response('hello world', {
+        status: 200,
+        headers: { 'content-length': '100' },
+      }),
+    );
+
+    const downloader = new NodeDownloader({ maxBytes: 10 });
+    const download = downloader.downloadTo(source, destination);
+
+    await expect(download).rejects.toBeInstanceOf(AggregateError);
+    expect(existsSync(destination)).toBe(false);
+  });
+
+  test('rejects chunked response exceeding maxBytes without Content-Length', async () => {
+    const dir = buildPath('node_downloader_stream_limit');
+    pathToClear(dir);
+    mkdirSync(dir, { recursive: true });
+
+    const source = 'http://localhost:8999/xsd/simple.xsd';
+    const destination = path.join(dir, 'stream-too-large.xsd');
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller): void {
+        controller.enqueue(new Uint8Array(8));
+        controller.enqueue(new Uint8Array(8));
+        controller.close();
+      },
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+
+    const downloader = new NodeDownloader({ maxBytes: 10 });
+    const download = downloader.downloadTo(source, destination);
+
+    await expect(download).rejects.toBeInstanceOf(AggregateError);
+    expect(existsSync(destination)).toBe(false);
+    expect(readdirSync(dir)).toStrictEqual([]);
+  });
+
+  test('timeoutMs aborts a slow response', async () => {
+    const dir = buildPath('node_downloader_timeout');
+    pathToClear(dir);
+    mkdirSync(dir, { recursive: true });
+
+    const source = 'http://localhost:8999/xsd/simple.xsd';
+    const destination = path.join(dir, 'slow.xsd');
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async (_input, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => {
+            reject(
+              init.signal?.reason instanceof Error ? init.signal.reason : new Error('Aborted'),
+            );
+          });
+        }),
+    );
+
+    const downloader = new NodeDownloader({ timeoutMs: 25 });
+    const download = downloader.downloadTo(source, destination);
+
+    await expect(download).rejects.toBeInstanceOf(AggregateError);
+    expect(existsSync(destination)).toBe(false);
+  });
+
+  test.each([
+    ['negative timeoutMs', { timeoutMs: -1 }],
+    ['NaN timeoutMs', { timeoutMs: NaN }],
+    ['Infinity timeoutMs', { timeoutMs: Infinity }],
+    ['negative maxBytes', { maxBytes: -1 }],
+    ['NaN maxBytes', { maxBytes: NaN }],
+  ])('throws RangeError for %s', (_name, options) => {
+    expect(() => new NodeDownloader(options)).toThrow(RangeError);
+  });
+
+  test('failed download preserves existing destination file and leaves no tmp files', async () => {
+    const dir = buildPath('node_downloader_atomic');
+    pathToClear(dir);
+    mkdirSync(dir, { recursive: true });
+
+    const source = 'http://localhost:8999/xsd/simple.xsd';
+    const destination = path.join(dir, 'existing.xsd');
+    writeFileSync(destination, '<existing/>', 'utf8');
+
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller): void {
+        controller.enqueue(new Uint8Array(20));
+        controller.close();
+      },
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(stream, { status: 200 }));
+
+    const downloader = new NodeDownloader({ maxBytes: 5 });
+
+    await expect(downloader.downloadTo(source, destination)).rejects.toBeInstanceOf(AggregateError);
+    expect(fileContent(destination)).toBe('<existing/>');
+    expect(readdirSync(dir)).toStrictEqual(['existing.xsd']);
   });
 });

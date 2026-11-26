@@ -1,9 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { EOL } from 'node:os';
 import { describe, expect, test } from 'vitest';
-import XsltRetriever from '../../src/xslt_retriever.js';
+import { XsltRetriever } from '../../src/xslt_retriever.js';
 import { buildPath, fileContent, filePath, publicPath } from '../../test_helpers/test_utils.js';
-import useRetriever from '../../test_helpers/use_retriever.js';
+import { useRetriever } from '../../test_helpers/use_retriever.js';
 
 describe('xslt retriever', () => {
   const { pathToClear } = useRetriever();
