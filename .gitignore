@@ -36,3 +36,5 @@ shrinkwrap.yaml
 .gemini
 .copilot
 .claude
+
+test_helpers/public/www.sat.gob.mx
