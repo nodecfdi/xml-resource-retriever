@@ -31,6 +31,35 @@ Si creaste una clase descargadora configurable y útil, siéntete libre de contr
 
 Basado en el repositorio de la versión PHP: https://github.com/eclipxe13/XmlResourceRetriever
 
+## Inicio rápido
+
+Instala el paquete con tu gestor preferido:
+
+```bash
+# pnpm
+pnpm add @nodecfdi/xml-resource-retriever
+
+# npm
+npm install @nodecfdi/xml-resource-retriever
+
+# yarn
+yarn add @nodecfdi/xml-resource-retriever
+
+# bun
+bun add @nodecfdi/xml-resource-retriever
+```
+
+Descarga un esquema XSD y todas sus dependencias de forma recursiva:
+
+```ts
+import { XsdRetriever } from '@nodecfdi/xml-resource-retriever';
+
+const retriever = new XsdRetriever('./storage');
+const localPath = await retriever.retrieve('http://www.sat.gob.mx/sitio_internet/cfd/4/cfdv40.xsd');
+
+console.log(localPath);
+```
+
 ## Documentación
 
 La documentación está disponible en el sitio web [NodeCfdi](https://nodecfdi.com/packages/xml-resource-retriever/getting-started/)

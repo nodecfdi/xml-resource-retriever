@@ -3,7 +3,7 @@
   "type": "module",
   "version": "2.0.1",
   "packageManager": "pnpm@12.23.0",
-  "description": "XSD and XLST resource downloader for local storage",
+  "description": "XSD and XSLT resource downloader for local storage",
   "author": "Fernando Isidro <luffynando@gmail.com>",
   "license": "MIT",
   "homepage": "https://github.com/nodecfdi/xml-resource-retriever",
@@ -117,5 +117,10 @@
         "pnpm run changelog"
       ]
     }
+  },
+  "nodecfdi": {
+    "title": "XML Resource Retriever",
+    "icon": "i-tabler-file-download",
+    "category": "utilities"
   }
 }
